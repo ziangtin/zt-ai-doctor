@@ -26,7 +26,7 @@ zai-doctor update      药典更新：拉 market 最新版
 ## 仓库结构
 
 ```
-zt-ai-market/
+zt-ai-doctor/
 ├── cli/        # zai-doctor CLI（Node + TS）
 ├── market/     # canonical 资产（药典）
 ├── catalog/    # 静态站（Phase 6）

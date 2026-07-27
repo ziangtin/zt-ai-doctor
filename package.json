@@ -1,5 +1,5 @@
 {
-  "name": "zt-ai-market",
+  "name": "zt-ai-doctor",
   "private": true,
   "version": "0.1.0",
   "description": "zai-doctor — agent-agnostic coding-agent engineering tool (诊断/开方/下药)",

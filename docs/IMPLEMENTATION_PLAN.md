@@ -1,4 +1,4 @@
-# ai-market 实施计划
+# zt-ai-doctor 实施计划
 
 > 个人、agent-agnostic 的 coding-agent 工程化工具。前端优先，不绑 Claude。
 > 本文档是 `/grill-me` 会话收敛后的落地计划。
@@ -20,7 +20,7 @@
 ## 2. 仓库结构（工具本身）
 
 ```
-zt-ai-market/
+zt-ai-doctor/
 ├── cli/                        # CLI 包（Node + TS）
 │   ├── src/
 │   │   ├── commands/           # init / install / sync / diagnose / detect / update
@@ -234,7 +234,7 @@ diagnose    复诊：再跑诊断，症状应消除
 
 - **版本**：`market/manifest.json` 单版本号（语义化，如 `1.2.0`）。每次内容变更 bump。
 - **lockfile**：`<project>/.agents/zai.lock.json` 锁 market 版本 + 已装资产 id + 内容 hash。`zai-doctor sync` 校验 lockfile；`zai-doctor update` 更新。
-- **分发**：market 作为 npm 包发布（如 `@zt/ai-market`），`zai-doctor treat` 从本地 node_modules / 缓存读，**离线可用**。CLI 包依赖或动态拉取 market 包。
+- **分发**：market 作为 npm 包发布（如 `@zt/ai-doctor-market`），`zai-doctor treat` 从本地 node_modules / 缓存读，**离线可用**。CLI 包依赖或动态拉取 market 包。
 - **catalog 静态站**：build 步骤扫 `market/` + frontmatter -> Astro/VitePress 站，部署 GitHub Pages。纯展示，无后端、无回传。
 
 ---
