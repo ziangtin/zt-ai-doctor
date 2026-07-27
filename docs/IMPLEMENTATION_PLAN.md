@@ -264,9 +264,9 @@ diagnose    复诊：再跑诊断，症状应消除
 - [ ] `.agents/` 目录约定文档
 
 ### Phase 1 — CLI 骨架 + install（2–3 天）
-- [ ] `zai-doctor init` 建 `.agents/` + 空 lockfile
-- [ ] `zai-doctor treat <id>` install 部分（装资产到 `.agents/`，写 lockfile；sync 见 Phase 2）
-- [ ] `zai-doctor update` 拉 market 新版本
+- [x] `zai-doctor init` 建 `.agents/` + 空 lockfile（含 .agents/.gitignore）
+- [x] `zai-doctor treat <id>` install 部分（装资产到 `.agents/`，写 lockfile；sync 见 Phase 2）
+- [x] `zai-doctor update` 拉 market 新版本（MVP：刷新 lockfile 药典版本）
 
 ### Phase 2 — sync 引擎（3–5 天，核心）
 - [ ] 层级合并（先只 baseline，company/personal 留 Phase 3）
