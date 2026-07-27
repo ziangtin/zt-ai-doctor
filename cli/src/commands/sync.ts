@@ -3,15 +3,55 @@ import path from 'node:path';
 import { agentsDir, lockfilePath } from '../core/paths.js';
 import { loadProjectAssets } from '../core/project.js';
 import { readLockfile } from '../core/lockfile.js';
-import { place } from '../core/place.js';
+import { place, removeIfManaged } from '../core/place.js';
 import { resolveAssets } from '../core/layers.js';
+import { readManifest, writeManifest } from '../core/manifest.js';
 import { renderers } from '../renderers/index.js';
-import type { AgentRenderer, LayerOverride, LoadedAsset, Placement } from '../core/types.js';
+import type {
+  AgentRenderer,
+  LayerOverride,
+  LoadedAsset,
+  Placement,
+  PlacementRecord,
+} from '../core/types.js';
 
-/** sync 核心：读 .agents/ 资产 -> 层级合并 -> 选 renderer -> 渲染 + 放置 + 报告 */
+/** 按 supports + meta.agents 过滤；不兼容的产出 skip（2.2） */
+function applicableAssets(
+  assets: LoadedAsset[],
+  r: AgentRenderer,
+): { applicable: LoadedAsset[]; skips: Placement[] } {
+  const applicable: LoadedAsset[] = [];
+  const skips: Placement[] = [];
+  for (const a of assets) {
+    if (!r.supports.includes(a.meta.type)) {
+      skips.push({
+        assetIds: [a.meta.id],
+        agent: r.name,
+        targetPath: '',
+        sourcePath: '',
+        action: 'skip',
+        reason: `${a.meta.type} 不被 ${r.name} 支持`,
+      });
+    } else if (a.meta.agents?.length && !a.meta.agents.includes(r.name)) {
+      skips.push({
+        assetIds: [a.meta.id],
+        agent: r.name,
+        targetPath: '',
+        sourcePath: '',
+        action: 'skip',
+        reason: `资产未声明支持 ${r.name}`,
+      });
+    } else {
+      applicable.push(a);
+    }
+  }
+  return { applicable, skips };
+}
+
+/** sync 核心：读 .agents/ -> 层级合并 -> 按 agent 过滤 -> 渲染 + 放置（受管）+ GC + 报告 */
 export async function runSync(
   projectRoot: string,
-  opts: { agent?: string } = {},
+  opts: { agent?: string; copy?: boolean } = {},
 ): Promise<Placement[]> {
   const assets = await loadProjectAssets(projectRoot);
   if (assets.length === 0) {
@@ -20,44 +60,83 @@ export async function runSync(
   }
   const { resolved, overrides } = resolveAssets(assets);
 
-  const active: AgentRenderer[] = [];
-  for (const r of renderers) {
-    const use = opts.agent ? r.name === opts.agent : await r.detect(projectRoot);
-    if (use) active.push(r);
-  }
-  if (active.length === 0) {
-    console.log('🔄 [sync] 未检测到 agent，用 --agent <claude|cursor> 指定');
-    return [];
+  // 选 renderer（--agent 指定但不存在 -> 报错，2.5）
+  let active: AgentRenderer[] = [];
+  if (opts.agent) {
+    const r = renderers.find((x) => x.name === opts.agent);
+    if (!r) {
+      throw new Error(`未知 agent: ${opts.agent}（可选: ${renderers.map((x) => x.name).join(', ')}）`);
+    }
+    active = [r];
+  } else {
+    for (const r of renderers) if (await r.detect(projectRoot)) active.push(r);
+    if (active.length === 0) {
+      console.log(`🔄 [sync] 未检测到 agent，用 --agent <${renderers.map((x) => x.name).join('|')}> 指定`);
+      return [];
+    }
   }
 
+  const prevManifest = await readManifest(projectRoot);
+  const activeNames = new Set(active.map((r) => r.name));
   const all: Placement[] = [];
+  const newRecords: PlacementRecord[] = [];
+
   for (const r of active) {
     const ctx = {
       buildDir: path.join(agentsDir(projectRoot), '.build', r.name),
       projectRoot,
     };
-    const placements = await r.renderAll(resolved, ctx);
-    for (let p of placements) {
-      if (p.action !== 'skip') p = await place(p);
-      all.push(p);
+    const { applicable, skips } = applicableAssets(resolved, r);
+    const placements = await r.renderAll(applicable, ctx);
+    for (const p of [...skips, ...placements]) {
+      if (p.action === 'skip') {
+        all.push(p);
+        continue;
+      }
+      const prev = prevManifest.get(p.targetPath);
+      const { placement, record } = await place(p, prev, opts.copy);
+      all.push(placement);
+      if (record) newRecords.push(record);
     }
   }
+
+  // GC：上一轮受管、本轮活跃 agent、但本轮未再生成的目标（2.6）
+  const newTargets = new Set(newRecords.map((r) => r.targetPath));
+  const gcRemoved: string[] = [];
+  const gcConflicts: string[] = [];
+  for (const [target, rec] of prevManifest) {
+    if (!activeNames.has(rec.agent)) continue; // 非本轮 agent，保留
+    if (newTargets.has(target)) continue; // 本轮仍生成
+    const res = await removeIfManaged(rec);
+    if (res === 'removed') gcRemoved.push(target);
+    else if (res === 'conflict') gcConflicts.push(target);
+  }
+
+  // 新 manifest = 非本轮 agent 的旧记录 + 本轮新记录
+  const keptPrev = [...prevManifest.values()].filter((r) => !activeNames.has(r.agent));
+  await writeManifest(projectRoot, [...keptPrev, ...newRecords]);
 
   if (overrides.length) {
     console.log('   层级覆盖：');
-    for (const o of overrides) {
-      console.log(`   ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
-    }
+    for (const o of overrides) console.log(`   ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
+  }
+  if (gcRemoved.length) {
+    console.log('   清理旧目标：');
+    for (const t of gcRemoved) console.log(`   🗑 ${path.relative(projectRoot, t)}`);
+  }
+  if (gcConflicts.length) {
+    console.log('   旧目标已被修改，未清理：');
+    for (const t of gcConflicts) console.log(`   ⚠ ${path.relative(projectRoot, t)}`);
   }
 
-  await writeReport(projectRoot, all, resolved, overrides);
+  await writeReport(projectRoot, all, resolved, overrides, gcRemoved, gcConflicts);
   printSummary(projectRoot, all);
   return all;
 }
 
 export async function syncCommand(
   projectRoot: string,
-  opts: { agent?: string },
+  opts: { agent?: string; copy?: boolean },
 ): Promise<void> {
   await runSync(projectRoot, opts);
 }
@@ -67,6 +146,8 @@ async function writeReport(
   placements: Placement[],
   assets: LoadedAsset[],
   overrides: LayerOverride[],
+  gcRemoved: string[],
+  gcConflicts: string[],
 ): Promise<void> {
   const lock = await readLockfile(lockfilePath(projectRoot));
   const lines: string[] = ['# zai-doctor sync 报告', ''];
@@ -76,13 +157,18 @@ async function writeReport(
   const agentNames = [...new Set(placements.map((p) => p.agent))];
   lines.push(`- 渲染 agent: ${agentNames.join(', ') || '无'}`);
   if (overrides.length) lines.push(`- 覆盖: ${overrides.length}`);
+  if (gcRemoved.length) lines.push(`- 清理: ${gcRemoved.length}`);
+  if (gcConflicts.length) lines.push(`- 冲突: ${gcConflicts.length}`);
   lines.push('');
 
   if (overrides.length) {
     lines.push('## 覆盖');
-    for (const o of overrides) {
-      lines.push(`- ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
-    }
+    for (const o of overrides) lines.push(`- ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
+    lines.push('');
+  }
+  if (gcRemoved.length) {
+    lines.push('## 清理');
+    for (const t of gcRemoved) lines.push(`- 🗑 ${path.relative(projectRoot, t)}`);
     lines.push('');
   }
 

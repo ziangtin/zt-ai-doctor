@@ -10,15 +10,19 @@ export async function exists(p: string): Promise<boolean> {
   }
 }
 
-/** 聚合多个 mcp 资产为 { mcpServers: { id: body } }，Claude/Cursor 通用 */
-export function aggregateMcp(mcps: LoadedAsset[]): { mcpServers: Record<string, unknown> } {
+/** 聚合多个 mcp 资产为 { mcpServers: { id: body } }，Claude/Cursor 通用。返回非法 body 的 id。 */
+export function aggregateMcp(mcps: LoadedAsset[]): {
+  mcpServers: Record<string, unknown>;
+  errors: string[];
+} {
   const mcpServers: Record<string, unknown> = {};
+  const errors: string[] = [];
   for (const m of mcps) {
     try {
       mcpServers[m.meta.id] = JSON.parse(m.content);
     } catch {
-      // 跳过非法 JSON body
+      errors.push(m.meta.id);
     }
   }
-  return { mcpServers };
+  return { mcpServers, errors };
 }

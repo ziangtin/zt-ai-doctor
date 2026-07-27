@@ -33,10 +33,10 @@ async function detectPm(projectRoot: string): Promise<string> {
   return '未检测到锁文件';
 }
 
-/** diagnose：体检，出症状报告 */
+/** diagnose：体检，出症状报告。--strict 时发现阻塞症状返回非零（2.5） */
 export async function diagnoseCommand(
   projectRoot: string,
-  opts: { market?: string },
+  opts: { market?: string; strict?: boolean },
 ): Promise<void> {
   const out: string[] = ['🩺 zai-doctor 诊断报告', ''];
   const findings: Finding[] = [];
@@ -160,5 +160,9 @@ export async function diagnoseCommand(
     const reportPath = path.join(agentsDir(projectRoot), '.build', 'diagnose-report.md');
     await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await fs.writeFile(reportPath, report, 'utf8');
+  }
+
+  if (opts.strict && blocks > 0) {
+    process.exit(1);
   }
 }

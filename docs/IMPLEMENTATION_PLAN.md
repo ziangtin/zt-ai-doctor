@@ -118,20 +118,23 @@ merged asset set (id -> asset)
         ▼
 for each installed agent renderer:
    for each asset:
-      if renderer.supports(type):
+      if asset.agents includes renderer.name AND renderer.supports(type):
          transform(asset) -> .agents/.build/<agent>/<type>/<file>   # 构建产物
          placement = symlink(agentConfigPath -> buildArtifact)
       else:
          placement = skip(reason)                                   # 如 skill -> cursor
         │
         ▼
-execute placements: try symlink; EPERM/Windows 无权限 -> 降级 copy
+execute placements against managed-placement state:
+   target absent/unchanged -> symlink；EPERM/Windows 无权限 -> 降级 copy
+   target changed by user -> conflict，不覆盖
+   stale managed target -> 安全清理
         │
         ▼
 write placement 报告（.agents/.build/sync-report.md）
 ```
 
-关键：**软链指向「构建产物」，不是 canonical 原文件**。因为各 agent 格式不兼容（Cursor `.mdc` 要 frontmatter、MCP 是 per-agent JSON），纯软链裸文件激活不了。转化产物才是软链目标。canonical 改了 -> 重跑 sync -> 产物更新 -> 软链自动指向新内容。
+关键：**软链指向「构建产物」，不是 canonical 原文件**。因为各 agent 格式不兼容（Cursor `.mdc` 要 frontmatter、MCP 是 per-agent JSON），纯软链裸文件激活不了。转化产物才是软链目标。canonical 改了 -> 重跑 sync -> 产物更新 -> 软链自动指向新内容。copy 降级不能仅靠“目标是不是普通文件”判断所有权，必须结合 managed-placement state，保证 Windows 下第二次及后续 sync 仍可更新。
 
 ### 4.2 Renderer 接口
 
@@ -176,6 +179,14 @@ try {
 
 注意：Windows 上 symlink 需要开发者模式或管理员权限，所以降级路径是默认会走的，必须测。`junction` 对目录可用且不需要管理员，可优先用于目录场景。
 
+copy 降级采用受管文件规则：
+
+1. 每次成功 placement 后，将 `targetPath`、`sourceHash`、`targetHash`、`action` 和 `assetIds` 写入 `.agents/.build/placements.json`。
+2. 再次 sync 时，目标 hash 等于上次记录的 `targetHash` 才允许原子覆盖。
+3. 目标 hash 已变化表示用户修改，报告 conflict 并返回失败，不自动覆盖。
+4. 资产删除、重命名或 agent 不再支持时，只清理 state 中记录且 hash 未变化的旧目标。
+5. placement state 通过临时文件 + rename 原子写入；中途失败不得留下半更新状态。
+
 ### 4.4 placement 报告
 
 每次 sync 输出 `.agents/.build/sync-report.md`，并在终端打印摘要：
@@ -188,6 +199,16 @@ try {
 ```
 
 静默跳过 = 坑，必须显式上报。
+
+### 4.5 数据边界、失败语义与安全约束
+
+- 使用运行时 schema 校验 manifest、frontmatter、lockfile 和 MCP JSON；TypeScript `as` 不能替代输入校验。
+- asset id 限制为 `^[a-z0-9][a-z0-9._-]*$`，manifest id/type 必须与 frontmatter 一致。
+- 所有 market source path、构建路径和 agent target path 经 `path.resolve` 后验证仍位于允许目录内，禁止 `../` 越界。
+- renderer 前统一执行 `asset.agents.includes(renderer.name)` 与 `renderer.supports.includes(asset.type)`；不兼容项显式 skip。
+- MCP JSON 解析失败属于资产错误，不得静默丢弃；安装或启用 MCP 前展示 command/args 与来源，要求显式信任。
+- 命令退出码约定：成功为 0；运行或同步失败为 1；参数、schema 或配置错误为 2。`diagnose --strict` 发现 blocker 时返回非零。
+- lockfile 和 placement state 使用完整 SHA-256；所有状态文件原子写入。
 
 ---
 
@@ -236,8 +257,9 @@ diagnose    复诊：再跑诊断，症状应消除
 ## 6. market 机制
 
 - **版本**：`market/manifest.json` 单版本号（语义化，如 `1.2.0`）。每次内容变更 bump。
-- **lockfile**：`<project>/.agents/zai.lock.json` 锁 market 版本 + 已装资产 id + 内容 hash。`zai-doctor sync` 校验 lockfile；`zai-doctor update` 更新。
-- **分发**：market 作为 npm 包发布（如 `@zt/ai-doctor-market`），`zai-doctor treat` 从本地 node_modules / 缓存读，**离线可用**。CLI 包依赖或动态拉取 market 包。
+- **lockfile**：`<project>/.agents/zai.lock.json` 锁 market 来源、版本、integrity + 已装资产 id + 完整 SHA-256。`zai-doctor sync` 校验 lockfile；`zai-doctor update` 更新。
+- **分发**：MVP 先把固定版本 market 随 CLI 包发布，`zai-doctor treat` 从本地包/缓存读取，保证离线可用。闭环稳定后再抽象 npm/git source adapter，不在第一版支持任意远程源。
+- **供应链**：MCP 中的 npm 包必须固定版本；启用前展示实际 command/args。远程 market 必须校验来源与包 integrity，不能只相信 manifest 版本字符串。
 - **catalog 静态站**：build 步骤扫 `market/` + frontmatter -> Astro/VitePress 站，部署 GitHub Pages。纯展示，无后端、无回传。
 
 ---
@@ -250,6 +272,7 @@ diagnose    复诊：再跑诊断，症状应消除
 | 运行时 | Node.js 20+ | 跨平台，symlink API 齐全 |
 | CLI 框架 | `commander` | 轻量够用 |
 | frontmatter | `gray-matter` | 标准 |
+| 运行时校验 | `zod` 或 JSON Schema | 对外部输入做真实结构校验与友好报错 |
 | 文件匹配 | `fast-glob` | 快 |
 | 包管理 | pnpm workspace | 前端主流；monorepo 友好 |
 | catalog 站 | Astro | 静态、内容导向、MDX |
@@ -259,7 +282,7 @@ diagnose    复诊：再跑诊断，症状应消除
 
 ## 8. MVP 任务拆解
 
-**MVP（个人可用）= Phase 0–5。catalog 与多 agent 扩展其后。**
+**MVP（个人可用）= Phase 0–5，且必须通过 Phase 4.5 可靠性门槛。catalog 与更多 agent 扩展其后。MVP 范围优先收缩为可靠支持 Claude + Cursor 的项目级 rules；skill/MCP 在安全与兼容验证完成前标记为实验能力。**
 
 ### Phase 0 — 资产模型 + 最小 market（1–2 天）
 - [ ] 定 frontmatter schema，写 3–5 条真实资产（1 条 React+TS rule、1 个 skill、1 个 mcp）
@@ -289,6 +312,17 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] 校验已引入资产（schema + lockfile hash + 药典新鲜度）
 - [x] 环境一致性（Node 版本 / 包管理器；agent 版本检测暂缺）——先做最小集
 
+### Phase 4.5 — 可靠性与安全补强（MVP 阻塞项）
+
+- [ ] managed placement state：解决 Windows copy 后续无法更新，并保护用户修改
+- [ ] 受管生成物垃圾回收：资产删除、重命名或兼容性变化后清理旧目标
+- [ ] renderer 前统一校验 `agents` + `supports`，所有不兼容项显式 skip
+- [ ] manifest / frontmatter / lockfile / MCP 运行时 schema 校验
+- [ ] id 格式、source path、target path 的目录边界校验
+- [ ] 稳定退出码；未知 agent、缺失资产、非法 MCP 不得成功返回
+- [ ] lockfile 与 placement state 使用完整 hash 和原子写入
+- [ ] 端到端测试矩阵通过：symlink、Windows copy 重同步、用户冲突、分层覆盖、非法输入、资产删除、双 agent
+
 ### Phase 5 — prescribe 开方（2 天）
 - [ ] 技术栈信号扫描（deps / config files）
 - [ ] stack 信号匹配 -> 推荐列表 + 标签筛选
@@ -307,15 +341,18 @@ diagnose    复诊：再跑诊断，症状应消除
 ## 9. 已知风险 / 待验证
 
 1. **Windows symlink**：默认会走 copy 降级；junction 用于目录可规避部分权限问题。需实测各 agent 是否跟随 symlink 读配置（Cursor 对 symlinked `.mdc` 行为待验证）。
-2. **agent 是否跟随 symlink**：若某 agent 拒绝读 symlink 文件，该 agent 强制走 copy（renderer 声明 `forceCopy: true`）。
-3. **覆盖矩阵有洞**：skill 在非 Claude agent 不可达，placement 报告必须显式 skip。
-4. **分发方式**：market 走 npm 包是首选，但「个人 market 是否值得发 npm」可议；备选 = git submodule / 指定 commit sha 拉取。MVP 先 npm，不通再切。
-5. **README.md / CLAUDE.md 是生成物**：rules 聚合成 `.agents/README.md`，项目根 `CLAUDE.md` 软链到它。拼接策略：按 priority 排序 + 分隔符。用户手改 `CLAUDE.md` 会被 sync 覆盖——改 canonical `rules/*.md`。
+2. **copy 所有权**：降级 copy 必须由 placement state 管理，否则第二次 sync 无法区分工具生成物与用户文件。
+3. **agent 是否跟随 symlink**：若某 agent 拒绝读 symlink 文件，该 agent 强制走 copy（renderer 声明 `forceCopy: true`）。
+4. **覆盖矩阵有洞**：skill 在非 Claude agent 不可达，placement 报告必须显式 skip。
+5. **供应链**：远程 market 与 `npx -y` 未固定依赖会削弱复现性；MVP 使用随 CLI 发布的固定版本 market，并固定 MCP 依赖版本。
+6. **README.md / CLAUDE.md 是生成物**：rules 聚合成 `.agents/README.md`，项目根 `CLAUDE.md` 软链到它。拼接策略：按 priority 排序 + 分隔符。用户手改目标文件时报告 conflict，不自动覆盖；修改应落在 canonical `rules/*.md`。
 
 ---
 
 ## 10. 下一步
 
-1. 确认本计划 → `git init` + 起 pnpm workspace 骨架
-2. 跑 Phase 0：先把 3–5 条真实资产和 schema 落地（这步定了，后面全顺）
-3. Phase 2 sync 引擎是技术核心，优先攻
+1. 暂停 Phase 5/6 扩展，先完成 Phase 4.5 可靠性与安全补强。
+2. 优先落地 managed placement state，修复 Windows copy 连续同步，并实现安全垃圾回收。
+3. 增加运行时 schema、路径边界、兼容过滤和稳定退出码。
+4. 建立跨平台端到端测试矩阵，通过后再实现 prescribe。
+5. 以 `docs/CURRENT_SOLUTION_REVIEW.md` 作为本轮改版依据；整改完成后重新评分并更新评审基线。

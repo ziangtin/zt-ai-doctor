@@ -71,6 +71,16 @@ export interface Placement {
   aggregate?: boolean;
 }
 
+/** placement manifest 中的一条受管记录（用于重同步与 GC） */
+export interface PlacementRecord {
+  targetPath: string;
+  agent: string;
+  action: 'symlink' | 'copy';
+  sourcePath: string;
+  hash: string;
+  assetIds: string[];
+}
+
 export interface RenderContext {
   buildDir: string;
   projectRoot: string;

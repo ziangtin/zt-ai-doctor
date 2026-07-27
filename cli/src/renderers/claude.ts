@@ -71,19 +71,33 @@ export const claudeRenderer: AgentRenderer = {
       });
     }
 
-    // mcp -> .mcp.json
+    // mcp -> .mcp.json（非法 body 单独 skip）
     const mcps = assets.filter((a) => a.meta.type === 'mcp');
     if (mcps.length) {
-      const build = path.join(ctx.buildDir, 'mcp.json');
-      await fs.writeFile(build, JSON.stringify(aggregateMcp(mcps), null, 2), 'utf8');
-      placements.push({
-        assetIds: mcps.map((m) => m.meta.id),
-        agent: 'claude',
-        targetPath: path.join(ctx.projectRoot, '.mcp.json'),
-        sourcePath: build,
-        action: 'symlink',
-        aggregate: true,
-      });
+      const { mcpServers, errors } = aggregateMcp(mcps);
+      for (const id of errors) {
+        placements.push({
+          assetIds: [id],
+          agent: 'claude',
+          targetPath: '',
+          sourcePath: '',
+          action: 'skip',
+          reason: 'MCP body 非法 JSON',
+        });
+      }
+      const valid = mcps.filter((m) => !errors.includes(m.meta.id));
+      if (valid.length) {
+        const build = path.join(ctx.buildDir, 'mcp.json');
+        await fs.writeFile(build, JSON.stringify({ mcpServers }, null, 2), 'utf8');
+        placements.push({
+          assetIds: valid.map((m) => m.meta.id),
+          agent: 'claude',
+          targetPath: path.join(ctx.projectRoot, '.mcp.json'),
+          sourcePath: build,
+          action: 'symlink',
+          aggregate: true,
+        });
+      }
     }
 
     return placements;

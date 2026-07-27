@@ -9,12 +9,12 @@ import { runSync } from './sync.js';
  * 下药：install + sync。
  * install：把指定资产从药典拷进 .agents/<type>/，更新 lockfile。
  * sync：渲染成各 agent 配置（软链优先/降级 copy）+ placement 报告。
- * 处方单（不带 ids）在 Phase 5。
+ * 处方单（不带 ids）在 Phase 5。任意 id 未找到 -> 退出码 1（2.5）。
  */
 export async function treatCommand(
   projectRoot: string,
   ids: string[],
-  opts: { market?: string; agent?: string },
+  opts: { market?: string; agent?: string; copy?: boolean },
 ): Promise<void> {
   if (ids.length === 0) {
     console.log('💉 [treat] 未指定药物 id（处方单功能在 Phase 5）。用法：zai-doctor treat <id> [id...]');
@@ -29,11 +29,13 @@ export async function treatCommand(
 
   const marketPath = resolveMarketPath(opts.market);
   const lines: string[] = [];
+  let notFound = 0;
 
   for (const id of ids) {
     const asset = await findAssetById(marketPath, id);
     if (!asset) {
       lines.push(`✗ ${id}  药典中未找到`);
+      notFound++;
       continue;
     }
     const { entry, meta, raw, hash } = asset;
@@ -57,5 +59,9 @@ export async function treatCommand(
   console.log(`   lockfile 已更新（共 ${lock.assets.length} 项）`);
 
   console.log('   同步到 agent 配置...');
-  await runSync(projectRoot, { agent: opts.agent });
+  await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
+
+  if (notFound > 0) {
+    process.exit(1);
+  }
 }

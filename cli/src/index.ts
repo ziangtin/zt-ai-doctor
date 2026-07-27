@@ -72,7 +72,8 @@ program
   .description('诊断：查 agent 配置/资产/环境一致性，出症状报告')
   .option('--market <path>', '药典路径（用于新鲜度检查）')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (opts: { market?: string; project?: string }) =>
+  .option('--strict', '发现阻塞症状时返回非零退出码')
+  .action(async (opts: { market?: string; project?: string; strict?: boolean }) =>
     handle(() => diagnoseCommand(projectRootOf(opts), opts)),
   );
 
@@ -91,8 +92,9 @@ program
   .option('--market <path>', '药典路径')
   .option('--project <path>', '项目根目录（默认 cwd）')
   .option('--agent <name>', '同步到指定 agent（claude|cursor）')
+  .option('--copy', '强制 copy（不用软链）')
   .action(
-    async (ids: string[], opts: { market?: string; project?: string; agent?: string }) =>
+    async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean }) =>
       handle(() => treatCommand(projectRootOf(opts), ids, opts)),
   );
 
@@ -111,8 +113,9 @@ program
   .command('sync')
   .description('换药：把 .agents/ 渲染成各 agent 配置（软链优先，降级 copy）')
   .option('--agent <name>', '指定单个 agent（claude|cursor）')
+  .option('--copy', '强制 copy（不用软链，适合无软链权限的环境）')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (opts: { agent?: string; project?: string }) =>
+  .action(async (opts: { agent?: string; copy?: boolean; project?: string }) =>
     handle(() => syncCommand(projectRootOf(opts), opts)),
   );
 

@@ -4,6 +4,18 @@
 > 评审范围：当前仓库中的 CLI、market、实现计划与发布配置。  
 > 验证情况：`tsc --noEmit` 与 ESLint 均通过；仓库暂未提供自动化测试或完整端到端验证。
 
+## 0. 修复进展（2026-07-27，第一阶段）
+
+针对下文 2.1 / 2.2 / 2.5 / 2.6 已修复并端到端验证：
+
+- **2.1 已修复**：引入 placement manifest（`.agents/.build/placements.json`），`place()` 用 hash 区分「受管 copy」与「用户改动」。copy 降级后改 canonical 重跑 sync 现在会更新（不再 skip）。
+- **2.2 已修复**：sync 引擎统一按 `renderer.supports` + `meta.agents` 过滤，不兼容项产出明确 skip（「X 不被 Y 支持」/「资产未声明支持 Y」）。
+- **2.5 部分修复**：treat 未找到 id / `sync --agent unknown` / `diagnose --strict` 阻塞 均返回非零退出码；非法 MCP body 产出 skip 报告（不再静默）。
+- **2.6 已修复**：sync 基于 manifest GC 上一轮受管、本轮未再生成的目标（未被用户改过才清理）。
+- 新增 `--copy`（强制 copy，测试/无软链权限环境用）、`diagnose --strict`。
+
+仍未处理：2.3（README 把规划写成已有能力）、2.4（运行时 schema / 路径校验，计划第二阶段）、2.7（market 供应链）。
+
 ## 1. 评审结论
 
 当前方案方向合理、架构骨架清楚，但尚未达到“可稳定日常使用”的 MVP。
