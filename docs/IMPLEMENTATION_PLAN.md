@@ -269,12 +269,12 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] `zai-doctor update` 拉 market 新版本（MVP：刷新 lockfile 药典版本）
 
 ### Phase 2 — sync 引擎（3–5 天，核心）
-- [ ] 层级合并（先只 baseline，company/personal 留 Phase 3）
-- [ ] Claude renderer（rule 聚合成 `.agents/README.md`、`CLAUDE.md` 软链、skill、`.mcp.json`）
-- [ ] Cursor renderer（rule -> `.mdc` + frontmatter、mcp、skill=skip）
-- [ ] 软链优先 / copy 降级（Windows 必测）
-- [ ] placement 报告
-- [ ] `treat` 串起 install + sync（含 placement 报告）
+- [x] 层级合并（先只 baseline，company/personal 留 Phase 3）
+- [x] Claude renderer（rule 聚合成 `.agents/README.md`、`CLAUDE.md` 软链、skill、`.mcp.json`）
+- [x] Cursor renderer（rule -> `.mdc` + frontmatter、mcp、skill=skip）
+- [x] 软链优先 / copy 降级（Windows 必测）- 验证：开发者模式下 symlink 生效，copy 降级路径已实现
+- [x] placement 报告
+- [x] `treat` 串起 install + sync（含 placement 报告）
 
 ### Phase 3 — 分层覆盖（1–2 天）
 - [ ] company overlay（`.agents/company/`，gitignored）

@@ -4,6 +4,7 @@ import { program } from 'commander';
 import { initCommand } from './commands/init.js';
 import { treatCommand } from './commands/treat.js';
 import { updateCommand } from './commands/update.js';
+import { syncCommand } from './commands/sync.js';
 
 const VERSION = '0.1.0';
 
@@ -53,24 +54,27 @@ program
     console.log('📝 [prescribe] TODO: Phase 5');
   });
 
-// 下药
+// 下药：install + sync
 program
   .command('treat [ids...]')
   .description('下药：抓药 + sync 渲染软链 + placement 报告（不带 ids 则按处方单）')
   .option('--market <path>', '药典路径')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (ids: string[], opts: { market?: string; project?: string }) =>
-    handle(() => treatCommand(projectRootOf(opts), ids, opts)),
+  .option('--agent <name>', '同步到指定 agent（claude|cursor）')
+  .action(
+    async (ids: string[], opts: { market?: string; project?: string; agent?: string }) =>
+      handle(() => treatCommand(projectRootOf(opts), ids, opts)),
   );
 
-// 换药（Phase 2）
+// 换药：仅 sync
 program
   .command('sync')
-  .description('换药：仅重新渲染软链（不装新资产）[Phase 2]')
-  .option('--agent <name>', '指定单个 agent')
-  .action(() => {
-    console.log('🔄 [sync] TODO: Phase 2 sync 引擎');
-  });
+  .description('换药：把 .agents/ 渲染成各 agent 配置（软链优先，降级 copy）')
+  .option('--agent <name>', '指定单个 agent（claude|cursor）')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (opts: { agent?: string; project?: string }) =>
+    handle(() => syncCommand(projectRootOf(opts), opts)),
+  );
 
 // 药典更新
 program

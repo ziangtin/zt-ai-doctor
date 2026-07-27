@@ -43,10 +43,35 @@ export interface Lockfile {
   assets: LockfileEntry[];
 }
 
-/** 从 market 加载到内存的完整资产 */
+/** 从 market / .agents/ 加载到内存的完整资产 */
 export interface LoadedAsset {
   entry: ManifestAssetEntry;
   meta: AssetMeta;
   raw: string;
+  /** 正文（去掉 frontmatter） */
+  content: string;
   hash: string;
+}
+
+/** sync 渲染后的一个放置项 */
+export interface Placement {
+  assetIds: string[];
+  agent: string;
+  targetPath: string;
+  sourcePath: string;
+  action: 'symlink' | 'copy' | 'skip';
+  reason?: string;
+  aggregate?: boolean;
+}
+
+export interface RenderContext {
+  buildDir: string;
+  projectRoot: string;
+}
+
+export interface AgentRenderer {
+  name: string;
+  supports: AssetType[];
+  detect: (projectRoot: string) => Promise<boolean>;
+  renderAll: (assets: LoadedAsset[], ctx: RenderContext) => Promise<Placement[]>;
 }

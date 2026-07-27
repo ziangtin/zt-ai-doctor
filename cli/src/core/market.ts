@@ -21,5 +21,5 @@ export async function findAssetById(marketPath: string, id: string): Promise<Loa
   const parsed = matter(raw);
   const meta = parsed.data as LoadedAsset['meta'];
   const hash = createHash('sha256').update(raw).digest('hex').slice(0, 16);
-  return { entry, meta, raw, hash };
+  return { entry, meta, raw, content: parsed.content, hash };
 }

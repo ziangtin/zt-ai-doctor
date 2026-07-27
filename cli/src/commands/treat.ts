@@ -3,16 +3,18 @@ import path from 'node:path';
 import { agentsDir, assetSubdir, lockfilePath, resolveMarketPath } from '../core/paths.js';
 import { findAssetById } from '../core/market.js';
 import { readLockfile, upsertAsset, writeLockfile } from '../core/lockfile.js';
+import { runSync } from './sync.js';
 
 /**
- * 下药（Phase 1：install 部分）。
- * 把指定资产从药典拷进 .agents/<type>/，更新 lockfile。
- * sync 渲染软链在 Phase 2；处方单（不带 ids）在 Phase 5。
+ * 下药：install + sync。
+ * install：把指定资产从药典拷进 .agents/<type>/，更新 lockfile。
+ * sync：渲染成各 agent 配置（软链优先/降级 copy）+ placement 报告。
+ * 处方单（不带 ids）在 Phase 5。
  */
 export async function treatCommand(
   projectRoot: string,
   ids: string[],
-  opts: { market?: string },
+  opts: { market?: string; agent?: string },
 ): Promise<void> {
   if (ids.length === 0) {
     console.log('💉 [treat] 未指定药物 id（处方单功能在 Phase 5）。用法：zai-doctor treat <id> [id...]');
@@ -53,4 +55,7 @@ export async function treatCommand(
   console.log('💉 [treat] 抓药完成：');
   for (const line of lines) console.log(`  ${line}`);
   console.log(`   lockfile 已更新（共 ${lock.assets.length} 项）`);
+
+  console.log('   同步到 agent 配置...');
+  await runSync(projectRoot, { agent: opts.agent });
 }
