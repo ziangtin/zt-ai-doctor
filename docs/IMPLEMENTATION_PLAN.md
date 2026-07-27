@@ -285,9 +285,9 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] per-rule 替换 by id + priority（resolveAssets：company > personal > baseline）
 
 ### Phase 4 — diagnose（2 天）
-- [ ] 检查各 agent 配置是否存在
-- [ ] 校验已引入资产（schema、引用完整性）
-- [ ] 环境一致性（Node 版本 / 包管理器 / agent 版本）——先做最小集
+- [x] 检查各 agent 配置是否存在（renderer.detect）
+- [x] 校验已引入资产（schema + lockfile hash + 药典新鲜度）
+- [x] 环境一致性（Node 版本 / 包管理器；agent 版本检测暂缺）——先做最小集
 
 ### Phase 5 — prescribe 开方（2 天）
 - [ ] 技术栈信号扫描（deps / config files）

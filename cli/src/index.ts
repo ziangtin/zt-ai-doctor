@@ -8,6 +8,7 @@ import { syncCommand } from './commands/sync.js';
 import { listCommand } from './commands/list.js';
 import { infoCommand } from './commands/info.js';
 import { overrideCommand } from './commands/override.js';
+import { diagnoseCommand } from './commands/diagnose.js';
 
 const VERSION = '0.1.0';
 
@@ -65,13 +66,15 @@ program
     handle(() => infoCommand(projectRootOf(opts), id, opts)),
   );
 
-// 诊断（Phase 4）
+// 诊断
 program
   .command('diagnose')
-  .description('诊断：查 agent 配置/资产/环境一致性，出症状报告 [Phase 4]')
-  .action(() => {
-    console.log('🩺 [diagnose] TODO: Phase 4');
-  });
+  .description('诊断：查 agent 配置/资产/环境一致性，出症状报告')
+  .option('--market <path>', '药典路径（用于新鲜度检查）')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (opts: { market?: string; project?: string }) =>
+    handle(() => diagnoseCommand(projectRootOf(opts), opts)),
+  );
 
 // 开方（Phase 5）
 program
