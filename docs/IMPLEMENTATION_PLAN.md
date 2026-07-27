@@ -203,6 +203,7 @@ bin 名 `zai-doctor`（建议 shell alias `zd=zai-doctor`）。整个流程按�
 | `zai-doctor diagnose` | 诊断 | 查 agent 配置有无 + 校验已引入资产 + 环境一致性，出症状报告 | 读 | ✓ |
 | `zai-doctor prescribe` | 开方 | 先诊断再读技术栈 -> 出处方（推荐资产 + 标签筛选），人工挑 | 读 | ✓ |
 | `zai-doctor treat [ids...]` | 下药 | 装处方/指定资产 + sync 渲染软链 + placement 报告 | 写 | ✓ |
+| `zai-doctor override <id>` | 覆盖 | 从药典拷资产到 .agents/company/ 作 company 覆盖起点 | 写 | ✓ |
 | `zai-doctor sync [--agent <name>]` | 换药 | 仅重新渲染软链（不装新资产） | 写 | ✓ |
 | `zai-doctor update` | 药典更新 | 拉 market 最新版本，更新 lockfile | 写 | ✓ |
 | `zai-doctor list` | 查药典 | 列出所有资产 + 已装状态（--type/--tag 筛选） | 读 | ✓ |
@@ -279,9 +280,9 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] `treat` 串起 install + sync（含 placement 报告）
 
 ### Phase 3 — 分层覆盖（1–2 天）
-- [ ] company overlay（`.agents/company/`，gitignored）
-- [ ] personal 层（market 内 `layer: personal`）
-- [ ] per-rule 替换 by id + priority
+- [x] company overlay（`.agents/company/`，gitignored）+ `override <id>` 命令建覆盖起点
+- [x] personal 层（market 内 `layer: personal`，与 baseline 共存于 .agents/<type>/）
+- [x] per-rule 替换 by id + priority（resolveAssets：company > personal > baseline）
 
 ### Phase 4 — diagnose（2 天）
 - [ ] 检查各 agent 配置是否存在

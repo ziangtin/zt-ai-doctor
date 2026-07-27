@@ -7,6 +7,7 @@ import { updateCommand } from './commands/update.js';
 import { syncCommand } from './commands/sync.js';
 import { listCommand } from './commands/list.js';
 import { infoCommand } from './commands/info.js';
+import { overrideCommand } from './commands/override.js';
 
 const VERSION = '0.1.0';
 
@@ -90,6 +91,16 @@ program
   .action(
     async (ids: string[], opts: { market?: string; project?: string; agent?: string }) =>
       handle(() => treatCommand(projectRootOf(opts), ids, opts)),
+  );
+
+// 覆盖：建 company 覆盖
+program
+  .command('override <id>')
+  .description('覆盖：从药典拷资产到 .agents/company/ 作为 company 覆盖起点（编辑后 sync 按 id 覆盖）')
+  .option('--market <path>', '药典路径')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (id: string, opts: { market?: string; project?: string }) =>
+    handle(() => overrideCommand(projectRootOf(opts), id, opts)),
   );
 
 // 换药：仅 sync

@@ -4,10 +4,11 @@ import { agentsDir, lockfilePath } from '../core/paths.js';
 import { loadProjectAssets } from '../core/project.js';
 import { readLockfile } from '../core/lockfile.js';
 import { place } from '../core/place.js';
+import { resolveAssets } from '../core/layers.js';
 import { renderers } from '../renderers/index.js';
-import type { AgentRenderer, LoadedAsset, Placement } from '../core/types.js';
+import type { AgentRenderer, LayerOverride, LoadedAsset, Placement } from '../core/types.js';
 
-/** sync 核心：读 .agents/ 资产 -> 选 renderer -> 渲染 + 放置 + 报告 */
+/** sync 核心：读 .agents/ 资产 -> 层级合并 -> 选 renderer -> 渲染 + 放置 + 报告 */
 export async function runSync(
   projectRoot: string,
   opts: { agent?: string } = {},
@@ -17,6 +18,7 @@ export async function runSync(
     console.log('🔄 [sync] .agents/ 无资产，先 zai-doctor treat <id>');
     return [];
   }
+  const { resolved, overrides } = resolveAssets(assets);
 
   const active: AgentRenderer[] = [];
   for (const r of renderers) {
@@ -34,14 +36,21 @@ export async function runSync(
       buildDir: path.join(agentsDir(projectRoot), '.build', r.name),
       projectRoot,
     };
-    const placements = await r.renderAll(assets, ctx);
+    const placements = await r.renderAll(resolved, ctx);
     for (let p of placements) {
       if (p.action !== 'skip') p = await place(p);
       all.push(p);
     }
   }
 
-  await writeReport(projectRoot, all, assets);
+  if (overrides.length) {
+    console.log('   层级覆盖：');
+    for (const o of overrides) {
+      console.log(`   ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
+    }
+  }
+
+  await writeReport(projectRoot, all, resolved, overrides);
   printSummary(projectRoot, all);
   return all;
 }
@@ -57,15 +66,25 @@ async function writeReport(
   projectRoot: string,
   placements: Placement[],
   assets: LoadedAsset[],
+  overrides: LayerOverride[],
 ): Promise<void> {
   const lock = await readLockfile(lockfilePath(projectRoot));
   const lines: string[] = ['# zai-doctor sync 报告', ''];
   lines.push(`- 生成时间: ${new Date().toISOString()}`);
   lines.push(`- 药典: ${lock ? `${lock.market.name}@${lock.market.version}` : '未知'}`);
-  lines.push(`- 资产数: ${assets.length}`);
+  lines.push(`- 资产数: ${assets.length}（合并后）`);
   const agentNames = [...new Set(placements.map((p) => p.agent))];
   lines.push(`- 渲染 agent: ${agentNames.join(', ') || '无'}`);
+  if (overrides.length) lines.push(`- 覆盖: ${overrides.length}`);
   lines.push('');
+
+  if (overrides.length) {
+    lines.push('## 覆盖');
+    for (const o of overrides) {
+      lines.push(`- ↺ ${o.id}  [${o.layers.join(',')}]  -> ${o.winner}`);
+    }
+    lines.push('');
+  }
 
   for (const agent of agentNames) {
     lines.push(`## ${agent}`);

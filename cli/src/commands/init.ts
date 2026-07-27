@@ -13,8 +13,11 @@ company/
 export async function initCommand(projectRoot: string, opts: { market?: string }): Promise<void> {
   const dir = agentsDir(projectRoot);
 
-  for (const sub of ['rules', 'skills', 'mcp', 'prompts', 'company', '.build']) {
+  for (const sub of ['rules', 'skills', 'mcp', 'prompts', '.build']) {
     await fs.mkdir(path.join(dir, sub), { recursive: true });
+  }
+  for (const sub of ['rules', 'skills', 'mcp', 'prompts']) {
+    await fs.mkdir(path.join(dir, 'company', sub), { recursive: true });
   }
   await fs.writeFile(path.join(dir, '.gitignore'), AGENTS_GITIGNORE, 'utf8');
 

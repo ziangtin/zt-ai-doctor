@@ -1,5 +1,12 @@
 export type AssetType = 'rule' | 'skill' | 'mcp' | 'prompt';
-export type Layer = 'baseline' | 'personal';
+export type Layer = 'baseline' | 'personal' | 'company';
+
+/** 层级覆盖记录（sync 时同 id 出现在多层） */
+export interface LayerOverride {
+  id: string;
+  layers: string[];
+  winner: string;
+}
 
 /** 资产 frontmatter（canonical 元数据，agent-agnostic） */
 export interface AssetMeta {
