@@ -14,7 +14,9 @@
 - **2.6 已修复**：sync 基于 manifest GC 上一轮受管、本轮未再生成的目标（未被用户改过才清理）。
 - 新增 `--copy`（强制 copy，测试/无软链权限环境用）、`diagnose --strict`。
 
-仍未处理：2.3（README 把规划写成已有能力）、2.4（运行时 schema / 路径校验，计划第二阶段）、2.7（market 供应链）。
+- **2.3 已修复**：README 用状态表区分已实现/规划中，agent 支持只声明 Claude+Cursor，`update`/`treat`/`prescribe` 的能力边界标注清楚。
+
+仍未处理：2.4（运行时 schema / 路径校验，计划第二阶段）、2.7（market 供应链）。
 
 ## 1. 评审结论
 
