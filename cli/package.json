@@ -1,0 +1,24 @@
+{
+  "name": "zai-doctor",
+  "version": "0.1.0",
+  "description": "agent-agnostic coding-agent engineering doctor: 建档 -> 诊断 -> 开方 -> 下药 -> 复诊",
+  "type": "module",
+  "bin": {
+    "zai-doctor": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "gray-matter": "^4.0.3",
+    "fast-glob": "^3.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0"
+  }
+}

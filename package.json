@@ -1,0 +1,11 @@
+{
+  "name": "zt-ai-market",
+  "private": true,
+  "version": "0.1.0",
+  "description": "zai-doctor — agent-agnostic coding-agent engineering tool (诊断/开方/下药)",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter zai-doctor dev",
+    "cli": "pnpm --filter zai-doctor dev"
+  }
+}
