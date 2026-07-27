@@ -205,7 +205,9 @@ bin 名 `zai-doctor`（建议 shell alias `zd=zai-doctor`）。整个流程按�
 | `zai-doctor treat [ids...]` | 下药 | 装处方/指定资产 + sync 渲染软链 + placement 报告 | 写 | ✓ |
 | `zai-doctor sync [--agent <name>]` | 换药 | 仅重新渲染软链（不装新资产） | 写 | ✓ |
 | `zai-doctor update` | 药典更新 | 拉 market 最新版本，更新 lockfile | 写 | ✓ |
-| `zai-doctor search <tag>` | 查药典 | 浏览/筛 market（也可直接看 catalog 站） | 读 | ✗ 用 web |
+| `zai-doctor list` | 查药典 | 列出所有资产 + 已装状态（--type/--tag 筛选） | 读 | ✓ |
+| `zai-doctor info <id>` | 查药典 | 看资产详情 + 已装状态 + hash 一致性 | 读 | ✓ |
+| `zai-doctor search <tag>` | 查药典 | 全文/标签搜（catalog 站，Phase 6） | 读 | ✗ 用 web |
 
 ### 看诊流程（对症下药）
 

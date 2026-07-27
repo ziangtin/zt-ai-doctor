@@ -5,6 +5,8 @@ import { initCommand } from './commands/init.js';
 import { treatCommand } from './commands/treat.js';
 import { updateCommand } from './commands/update.js';
 import { syncCommand } from './commands/sync.js';
+import { listCommand } from './commands/list.js';
+import { infoCommand } from './commands/info.js';
 
 const VERSION = '0.1.0';
 
@@ -36,6 +38,30 @@ program
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (opts: { market?: string; project?: string }) =>
     handle(() => initCommand(projectRootOf(opts), opts)),
+  );
+
+// 查药典：列出资产
+program
+  .command('list')
+  .description('查药典：列出所有资产 + 已装状态（可 --type/--tag 筛选）')
+  .option('--market <path>', '药典路径')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .option('--type <type>', '按类型筛选（rule|skill|mcp|prompt）')
+  .option('--tag <tag>', '按标签筛选')
+  .action(
+    async (opts: { market?: string; project?: string; type?: string; tag?: string }) =>
+      handle(() => listCommand(projectRootOf(opts), opts)),
+  );
+
+// 查药典：看某个资产详情
+program
+  .command('info <id>')
+  .description('查药典：看某个资产详情 + 已装状态 + hash 一致性（--full 显示正文）')
+  .option('--market <path>', '药典路径')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .option('--full', '显示正文')
+  .action(async (id: string, opts: { market?: string; project?: string; full?: boolean }) =>
+    handle(() => infoCommand(projectRootOf(opts), id, opts)),
   );
 
 // 诊断（Phase 4）
