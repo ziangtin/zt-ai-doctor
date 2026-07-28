@@ -15,7 +15,8 @@
   "dependencies": {
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

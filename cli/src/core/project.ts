@@ -2,8 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
-import type { AssetMeta, Layer, LoadedAsset, ManifestAssetEntry } from './types.js';
+import type { Layer, LoadedAsset, ManifestAssetEntry } from './types.js';
 import { agentsDir } from './paths.js';
+import { validateAssetMeta } from './schema.js';
 
 /**
  * 扫描项目资产：
@@ -39,7 +40,7 @@ async function loadDir(
     const full = path.join(subDir, f);
     const raw = await fs.readFile(full, 'utf8');
     const parsed = matter(raw);
-    const meta = parsed.data as AssetMeta;
+    const meta = validateAssetMeta(parsed.data);
     if (forceLayer) meta.layer = forceLayer;
     const hash = createHash('sha256').update(raw).digest('hex').slice(0, 16);
     const entry: ManifestAssetEntry = {

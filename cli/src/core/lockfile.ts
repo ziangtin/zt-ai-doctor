@@ -1,13 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Lockfile, LockfileEntry } from './types.js';
-
-const SCHEMA_VERSION = '1';
+import { LOCKFILE_SCHEMA_VERSION, validateLockfile } from './schema.js';
 
 export async function readLockfile(filePath: string): Promise<Lockfile | null> {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(raw) as Lockfile;
+    return validateLockfile(JSON.parse(raw));
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw e;
@@ -16,12 +15,15 @@ export async function readLockfile(filePath: string): Promise<Lockfile | null> {
 
 export async function writeLockfile(filePath: string, lock: Lockfile): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(lock, null, 2) + '\n', 'utf8');
+  // 原子写：临时文件 + rename
+  const tmp = `${filePath}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(lock, null, 2) + '\n', 'utf8');
+  await fs.rename(tmp, filePath);
 }
 
 export function emptyLockfile(marketName: string, marketVersion: string): Lockfile {
   return {
-    version: SCHEMA_VERSION,
+    version: LOCKFILE_SCHEMA_VERSION,
     market: { name: marketName, version: marketVersion },
     assets: [],
   };

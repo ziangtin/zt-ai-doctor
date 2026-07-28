@@ -15,8 +15,9 @@
 - 新增 `--copy`（强制 copy，测试/无软链权限环境用）、`diagnose --strict`。
 
 - **2.3 已修复**：README 用状态表区分已实现/规划中，agent 支持只声明 Claude+Cursor，`update`/`treat`/`prescribe` 的能力边界标注清楚。
+- **2.4 已修复**：Zod 校验 manifest/frontmatter/lockfile（含 schema 版本检查）；id 格式 `^[a-z0-9][a-z0-9._-]*$` 防 target 路径注入；manifest path 越界防护（`assertWithinBase`）；manifest/frontmatter id+type 一致性校验；lockfile 原子写（tmp+rename）；zod 错误格式化可读。
 
-仍未处理：2.4（运行时 schema / 路径校验，计划第二阶段）、2.7（market 供应链）。
+仍未处理：2.7（market 供应链：`update` 真拉取、MCP 包版本固定、lockfile 记录来源与完整性）。
 
 ## 1. 评审结论
 
