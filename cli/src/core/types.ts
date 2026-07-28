@@ -44,9 +44,18 @@ export interface LockfileEntry {
   marketPath: string;
 }
 
+export interface MarketSource {
+  type: 'local' | 'git' | 'npm';
+  uri: string;
+  ref: string;
+  integrity: string; // sha256 of manifest.json (64 hex)
+}
+
 export interface Lockfile {
   version: string;
   market: { name: string; version: string };
+  source: MarketSource;
+  trustedMcp: string[];
   assets: LockfileEntry[];
 }
 

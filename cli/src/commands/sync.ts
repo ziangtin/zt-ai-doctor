@@ -15,10 +15,21 @@ import type {
   PlacementRecord,
 } from '../core/types.js';
 
-/** 按 supports + meta.agents 过滤；不兼容的产出 skip（2.2） */
+/** MCP 命令预览（用于未信任时的提示） */
+function mcpPreview(a: LoadedAsset): string {
+  try {
+    const b = JSON.parse(a.content) as { command?: string; args?: string[] };
+    return `command=${b.command ?? '?'} args=${JSON.stringify(b.args ?? [])}`;
+  } catch {
+    return 'body 非法 JSON';
+  }
+}
+
+/** 按 supports + meta.agents + MCP 信任过滤；不兼容的产出 skip（2.2 + 2.7） */
 function applicableAssets(
   assets: LoadedAsset[],
   r: AgentRenderer,
+  trustedMcp: Set<string>,
 ): { applicable: LoadedAsset[]; skips: Placement[] } {
   const applicable: LoadedAsset[] = [];
   const skips: Placement[] = [];
@@ -41,6 +52,15 @@ function applicableAssets(
         action: 'skip',
         reason: `资产未声明支持 ${r.name}`,
       });
+    } else if (a.meta.type === 'mcp' && !trustedMcp.has(a.meta.id)) {
+      skips.push({
+        assetIds: [a.meta.id],
+        agent: r.name,
+        targetPath: '',
+        sourcePath: '',
+        action: 'skip',
+        reason: `MCP 未信任（${mcpPreview(a)}）；运行 zai-doctor trust ${a.meta.id}`,
+      });
     } else {
       applicable.push(a);
     }
@@ -48,7 +68,7 @@ function applicableAssets(
   return { applicable, skips };
 }
 
-/** sync 核心：读 .agents/ -> 层级合并 -> 按 agent 过滤 -> 渲染 + 放置（受管）+ GC + 报告 */
+/** sync 核心：读 .agents/ -> 层级合并 -> 按 agent + 信任过滤 -> 渲染 + 放置（受管）+ GC + 报告 */
 export async function runSync(
   projectRoot: string,
   opts: { agent?: string; copy?: boolean } = {},
@@ -59,6 +79,9 @@ export async function runSync(
     return [];
   }
   const { resolved, overrides } = resolveAssets(assets);
+
+  const lock = await readLockfile(lockfilePath(projectRoot));
+  const trustedMcp = new Set(lock?.trustedMcp ?? []);
 
   // 选 renderer（--agent 指定但不存在 -> 报错，2.5）
   let active: AgentRenderer[] = [];
@@ -86,7 +109,7 @@ export async function runSync(
       buildDir: path.join(agentsDir(projectRoot), '.build', r.name),
       projectRoot,
     };
-    const { applicable, skips } = applicableAssets(resolved, r);
+    const { applicable, skips } = applicableAssets(resolved, r, trustedMcp);
     const placements = await r.renderAll(applicable, ctx);
     for (const p of [...skips, ...placements]) {
       if (p.action === 'skip') {
@@ -105,14 +128,13 @@ export async function runSync(
   const gcRemoved: string[] = [];
   const gcConflicts: string[] = [];
   for (const [target, rec] of prevManifest) {
-    if (!activeNames.has(rec.agent)) continue; // 非本轮 agent，保留
-    if (newTargets.has(target)) continue; // 本轮仍生成
+    if (!activeNames.has(rec.agent)) continue;
+    if (newTargets.has(target)) continue;
     const res = await removeIfManaged(rec);
     if (res === 'removed') gcRemoved.push(target);
     else if (res === 'conflict') gcConflicts.push(target);
   }
 
-  // 新 manifest = 非本轮 agent 的旧记录 + 本轮新记录
   const keptPrev = [...prevManifest.values()].filter((r) => !activeNames.has(r.agent));
   await writeManifest(projectRoot, [...keptPrev, ...newRecords]);
 
@@ -129,7 +151,7 @@ export async function runSync(
     for (const t of gcConflicts) console.log(`   ⚠ ${path.relative(projectRoot, t)}`);
   }
 
-  await writeReport(projectRoot, all, resolved, overrides, gcRemoved, gcConflicts);
+  await writeReport(projectRoot, all, resolved, overrides, gcRemoved, gcConflicts, lock);
   printSummary(projectRoot, all);
   return all;
 }
@@ -148,11 +170,14 @@ async function writeReport(
   overrides: LayerOverride[],
   gcRemoved: string[],
   gcConflicts: string[],
+  lock: Awaited<ReturnType<typeof readLockfile>>,
 ): Promise<void> {
-  const lock = await readLockfile(lockfilePath(projectRoot));
   const lines: string[] = ['# zai-doctor sync 报告', ''];
   lines.push(`- 生成时间: ${new Date().toISOString()}`);
   lines.push(`- 药典: ${lock ? `${lock.market.name}@${lock.market.version}` : '未知'}`);
+  if (lock?.source) {
+    lines.push(`- 来源: ${lock.source.type} ${lock.source.uri}${lock.source.ref ? `@${lock.source.ref.slice(0, 8)}` : ''}`);
+  }
   lines.push(`- 资产数: ${assets.length}（合并后）`);
   const agentNames = [...new Set(placements.map((p) => p.agent))];
   lines.push(`- 渲染 agent: ${agentNames.join(', ') || '无'}`);

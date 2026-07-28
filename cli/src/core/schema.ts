@@ -37,9 +37,18 @@ const manifestSchema = z.object({
   ),
 });
 
+const marketSourceSchema = z.object({
+  type: z.enum(['local', 'git', 'npm']),
+  uri: z.string(),
+  ref: z.string(),
+  integrity: z.string(),
+});
+
 const lockfileSchema = z.object({
   version: z.string(),
   market: z.object({ name: z.string(), version: z.string() }),
+  source: marketSourceSchema,
+  trustedMcp: z.array(z.string()).default([]),
   assets: z.array(
     z.object({
       id: idSchema,
@@ -51,7 +60,7 @@ const lockfileSchema = z.object({
   ),
 });
 
-export const LOCKFILE_SCHEMA_VERSION = '1';
+export const LOCKFILE_SCHEMA_VERSION = '2';
 
 /** 路径越界防护：target 解析后必须落在 base 内（防 ../ 逃逸） */
 export function assertWithinBase(base: string, target: string, label: string): void {

@@ -23,7 +23,8 @@ agent-agnostic 的个人 coding-agent 工程化工具。像医生一样：**建�
 | `treat <ids...>` | ✅ | 下药：装资产 + sync 渲染 + placement 报告（不支持无 id 处方单） |
 | `override <id>` | ✅ | 覆盖：拷资产到 `.agents/company/` 作 company 覆盖起点 |
 | `sync` | ✅ | 换药：渲染 `.agents/` 到 agent 配置（`--copy` 强制 copy） |
-| `update` | ✅ 部分 | 仅刷新 lockfile 药典版本（暂不拉取远程） |
+| `update` | ✅ | 药典更新：刷新版本 + integrity；`--source <git-url>` 从 git 拉取 |
+| `trust <id>` | ✅ | 信任 MCP：展示 command/args + 未固定版本警告（未信任则 sync 不写 MCP 配置） |
 | `prescribe` | 🚧 规划 | 开方：技术栈检测 + 处方单（当前 stub） |
 
 建议 `alias zd=zai-doctor`。

@@ -9,6 +9,7 @@ import { listCommand } from './commands/list.js';
 import { infoCommand } from './commands/info.js';
 import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
+import { trustCommand } from './commands/trust.js';
 
 const VERSION = '0.1.0';
 
@@ -108,6 +109,16 @@ program
     handle(() => overrideCommand(projectRootOf(opts), id, opts)),
   );
 
+// 信任 MCP
+program
+  .command('trust <id>')
+  .description('信任 MCP：展示 command/args，标记为信任（sync 才写入 MCP 配置）')
+  .option('--market <path>', '药典路径')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (id: string, opts: { market?: string; project?: string }) =>
+    handle(() => trustCommand(projectRootOf(opts), id, opts)),
+  );
+
 // 换药：仅 sync
 program
   .command('sync')
@@ -122,11 +133,14 @@ program
 // 药典更新
 program
   .command('update')
-  .description('药典更新：拉 market 最新版，更新 lockfile')
+  .description('药典更新：刷新 lockfile 版本与 integrity（--source <git-url> 从 git 拉取）')
   .option('--market <path>', '药典路径')
+  .option('--source <git-url>', '从 git 拉取药典')
+  .option('--ref <ref>', 'git 分支/tag（配合 --source）')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (opts: { market?: string; project?: string }) =>
-    handle(() => updateCommand(projectRootOf(opts), opts)),
+  .action(
+    async (opts: { market?: string; source?: string; ref?: string; project?: string }) =>
+      handle(() => updateCommand(projectRootOf(opts), opts)),
   );
 
 program.parse();

@@ -6,3 +6,9 @@ export async function hashFile(p: string): Promise<string> {
   const buf = await fs.readFile(p);
   return createHash('sha256').update(buf).digest('hex').slice(0, 16);
 }
+
+/** 文件内容完整 sha256（64 hex），用于药典 integrity */
+export async function hashFileFull(p: string): Promise<string> {
+  const buf = await fs.readFile(p);
+  return createHash('sha256').update(buf).digest('hex');
+}
