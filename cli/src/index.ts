@@ -10,6 +10,7 @@ import { infoCommand } from './commands/info.js';
 import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
 import { trustCommand } from './commands/trust.js';
+import { prescribeCommand } from './commands/prescribe.js';
 import { UsageError } from './core/errors.js';
 
 const VERSION = '0.1.0';
@@ -79,13 +80,16 @@ program
     handle(() => diagnoseCommand(projectRootOf(opts), opts)),
   );
 
-// 开方（Phase 5）
+// 开方
 program
   .command('prescribe')
-  .description('开方：诊断 + 读技术栈 -> 处方单 [Phase 5]')
-  .action(() => {
-    console.log('📝 [prescribe] TODO: Phase 5');
-  });
+  .description('开方：诊断 + 读技术栈 -> 处方单（.agents/.build/prescription.md）')
+  .option('--market <path>', '药典路径')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .option('--tag <tag>', '按标签筛选资产')
+  .action(async (opts: { market?: string; project?: string; tag?: string }) =>
+    handle(() => prescribeCommand(projectRootOf(opts), opts)),
+  );
 
 // 下药：install + sync
 program

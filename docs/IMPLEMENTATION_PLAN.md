@@ -324,9 +324,9 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] 端到端测试矩阵通过：symlink、Windows copy 重同步、用户冲突、分层覆盖、非法输入、资产删除、双 agent
 
 ### Phase 5 — prescribe 开方（2 天）
-- [ ] 技术栈信号扫描（deps / config files）
-- [ ] stack 信号匹配 -> 推荐列表 + 标签筛选
-- [ ] 处方单生成（`.agents/.build/prescription.md`），供 `treat` 读取
+- [x] 技术栈信号扫描（deps / config files）
+- [x] stack 信号匹配 -> 推荐列表 + 标签筛选
+- [x] 处方单生成（`.agents/.build/prescription.md`），供 `treat` 读取
 
 ### Phase 6 — catalog 静态站（2–3 天）
 - [ ] build 扫 `market/` -> Astro 站

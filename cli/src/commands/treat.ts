@@ -5,21 +5,32 @@ import { findAssetById } from '../core/market.js';
 import { readLockfile, upsertAsset, writeLockfile } from '../core/lockfile.js';
 import { runSync } from './sync.js';
 import { UsageError } from '../core/errors.js';
+import { readPrescriptionSelection } from '../core/prescription.js';
 
 /**
  * 下药：install + sync。
  * install：把指定资产从药典拷进 .agents/<type>/，更新 lockfile。
  * sync：渲染成各 agent 配置（软链优先/降级 copy）+ placement 报告。
- * 处方单（不带 ids）在 Phase 5。任意 id 未找到 -> 退出码 2（参数错误）。
+ * 不带 ids 时按处方单（.agents/.build/prescription.md）勾选抓药。任意 id 未找到 -> 退出码 2（参数错误）。
  */
 export async function treatCommand(
   projectRoot: string,
   ids: string[],
   opts: { market?: string; agent?: string; copy?: boolean },
 ): Promise<void> {
-  if (ids.length === 0) {
-    console.log('💉 [treat] 未指定药物 id（处方单功能在 Phase 5）。用法：zai-doctor treat <id> [id...]');
-    return;
+  let toInstall = ids;
+  if (toInstall.length === 0) {
+    const selected = await readPrescriptionSelection(projectRoot);
+    if (selected === null) {
+      console.log('💉 [treat] 无处方单，先运行 zai-doctor prescribe，或 zai-doctor treat <id> [id...]');
+      return;
+    }
+    if (selected.length === 0) {
+      console.log('💉 [treat] 处方单无勾选，编辑 .agents/.build/prescription.md 勾选 [x] 后重试');
+      return;
+    }
+    toInstall = selected;
+    console.log(`💉 [treat] 按处方单抓药：${toInstall.join(', ')}`);
   }
 
   const lockPath = lockfilePath(projectRoot);
@@ -32,7 +43,7 @@ export async function treatCommand(
   const lines: string[] = [];
   let notFound = 0;
 
-  for (const id of ids) {
+  for (const id of toInstall) {
     const asset = await findAssetById(marketPath, id);
     if (!asset) {
       lines.push(`✗ ${id}  药典中未找到`);

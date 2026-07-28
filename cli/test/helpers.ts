@@ -12,6 +12,8 @@ export interface AssetSpec {
   priority?: number;
   agents?: string[];
   title?: string;
+  stack?: { deps?: string[]; files?: string[] };
+  tags?: string[];
   body: string;
   filename?: string;
 }
@@ -48,6 +50,13 @@ export async function makeMarket(dir: string, assets: AssetSpec[]): Promise<stri
     if (a.layer) fm.push(`layer: ${a.layer}`);
     if (a.priority !== undefined) fm.push(`priority: ${a.priority}`);
     if (a.agents) fm.push(`agents: [${a.agents.join(', ')}]`);
+    if (a.tags) fm.push(`tags: [${a.tags.join(', ')}]`);
+    if (a.stack) {
+      const parts: string[] = [];
+      if (a.stack.deps?.length) parts.push(`deps: [${a.stack.deps.join(', ')}]`);
+      if (a.stack.files?.length) parts.push(`files: [${a.stack.files.join(', ')}]`);
+      if (parts.length) fm.push(`stack:\n  ${parts.join('\n  ')}`);
+    }
     fm.push('---', '', a.body.trim(), '');
     await fs.writeFile(p, fm.join('\n'), 'utf8');
     entries.push({ id: a.id, type: a.type, path: `${subdir}/${fname}` });

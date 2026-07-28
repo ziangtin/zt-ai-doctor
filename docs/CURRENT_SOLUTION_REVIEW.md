@@ -25,17 +25,25 @@
 - **2.5 补齐**：退出码区分 `exit(2)`（参数/schema/配置错误）vs `exit(1)`（运行失败）；新增 `UsageError`，schema 校验失败、路径越界、未知 agent、未建档、未找到资产、非法 MCP、`diagnose --strict` 均走 `exit(2)`。
 - **2.7 补齐**：`placements.json` 原子写（tmp+rename）；资产/受管文件 hash 改完整 SHA-256（64 hex，原 16 位截断）。
 - **2.5 补齐**：sync 前对 target path 显式 `assertWithinBase(projectRoot, target)`，与 id 正则共同防 target 注入。
-- **测试矩阵**：新增 vitest，4 文件 21 测试，覆盖 copy 重同步、用户冲突、GC、非活跃 agent 保留、symlink（条件）、分层覆盖、priority、非法 id/frontmatter/MCP/路径越界/不一致/lockfile 版本、退出码、双 agent + supports skip、未信任 MCP skip。
+- **测试矩阵**：新增 vitest，5 文件 30 测试，覆盖 copy 重同步、用户冲突、GC、非活跃 agent 保留、symlink（条件）、分层覆盖、priority、非法 id/frontmatter/MCP/路径越界/不一致/lockfile 版本、退出码、双 agent + supports skip、未信任 MCP skip、prescribe 技术栈匹配/处方单/标签筛选/treat 读处方单。
+
+### 第三阶段（2026-07-28）：Phase 5 prescribe 开方
+
+- `prescribe` 命令：读项目 package.json 依赖 + 检测 agent + 匹配药典资产 `stack`（deps/files）-> 生成处方单（`.agents/.build/prescription.md`）。
+- 处方单含：技术栈、症状、推荐区（置信度 高/中 + 信号 + 原因，默认勾选）、可选区（无 stack/无匹配，含 MCP command/args + 未信任/未固定版本警告 + skill 仅 Claude 提示）、用法说明。
+- `treat` 不带 id 改为读处方单勾选 `[x]` 抓药；无处方单/无勾选给明确提示。
+- `prescribe --tag` 按标签筛选资产。
+- 不自动装、不自动信任，保留人工挑选。
 
 ## 1. 评审结论
 
-综合评分：**7.2 / 10**（初评 5.8）
+综合评分：**7.5 / 10**（初评 5.8，二评 7.2）
 
 - 作为概念验证：8.5 / 10
 - 作为个人内部工具：8 / 10
 - 作为可发布、可长期维护的产品：5.5 / 10
 
-核心正确性、安全边界与测试矩阵已达到"个人可用 MVP"门槛。剩余短板集中在功能完整性（prescribe 未实现）与发布成熟度（无 CI、market 未独立包、无 remove 命令）。
+核心正确性、安全边界与测试矩阵已达到"个人可用 MVP"门槛，Phase 5 prescribe 闭环看诊流程（建档->诊断->开方->下药->复诊）。剩余短板集中在发布成熟度（无 CI、market 未独立包、无 remove 命令）与多 agent 扩展。
 
 ## 2. 主要问题（初评 2.1–2.7，均已修复）
 
@@ -57,7 +65,7 @@
 |---|---:|---:|---|
 | 产品定位 | 7 | 7 | 不变 |
 | 架构设计 | 7 | 7 | 不变 |
-| 功能完整性 | 5 | 6 | prescribe 仍 TODO；update 已支持 git source；仍无 remove 命令、仅 Claude+Cursor |
+| 功能完整性 | 5 | 7 | prescribe 已实现（技术栈匹配+处方单+--tag），treat 读处方单；update 支持 git source；仍无 remove 命令、仅 Claude+Cursor |
 | 核心正确性 | 4 | 8 | copy 重同步/agent 过滤/GC/冲突保护均修复并有测试 |
 | 跨平台能力 | 4 | 7 | copy 降级重同步修复 + 测试；symlink 条件测试 |
 | 安全性 | 4 | 7.5 | 运行时 schema/路径边界/MCP 信任/完整 hash + 测试 |
@@ -70,13 +78,13 @@
 
 ## 5. 剩余短板与下一步
 
-1. **prescribe 未实现**（Phase 5）：`prescribe` 仍输出 TODO，`treat` 不带 id 仍提示 Phase 5。
-2. **发布成熟度**：无 CI、无自动化发布、market 未独立成包、无 `remove`/uninstall 命令。
+1. **无 remove/uninstall 命令**：资产卸载靠删 `.agents/<type>/<id>.md` 后 sync GC，无显式命令。
+2. **发布成熟度**：无 CI、无自动化发布、market 未独立成包。
 3. **多 agent**：仅 Claude+Cursor；Copilot/Codex/Cline 在 Phase 7。
 4. **conflict 退出码**：用户改过目标文件时 sync 当前 `exit 0`（conflict 作 skip 报告），未算部分失败。若 CI 需 stricter 语义可调整为 `exit 1`。
 5. **symlink 实测**：Windows 默认环境跳过 symlink 断言；需在 Linux/macOS 或 Windows 开发者模式 CI 上验证各 agent 是否跟随 symlink 读配置。
 
-按 IMPLEMENTATION_PLAN 第 10 节，下一步进入 Phase 5（prescribe）。
+按 IMPLEMENTATION_PLAN 第 10 节，下一步进入 Phase 6（catalog 静态站）。
 
 ## 6. 验收标准达成情况
 
