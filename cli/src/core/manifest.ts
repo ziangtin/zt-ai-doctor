@@ -25,5 +25,8 @@ export async function readManifest(projectRoot: string): Promise<Map<string, Pla
 export async function writeManifest(projectRoot: string, records: PlacementRecord[]): Promise<void> {
   const p = manifestPath(projectRoot);
   await fs.mkdir(path.dirname(p), { recursive: true });
-  await fs.writeFile(p, JSON.stringify({ placements: records }, null, 2) + '\n', 'utf8');
+  // 原子写：临时文件 + rename
+  const tmp = `${p}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify({ placements: records }, null, 2) + '\n', 'utf8');
+  await fs.rename(tmp, p);
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import path from 'node:path';
 import type { AssetMeta, Lockfile, Manifest } from './types.js';
+import { UsageError } from './errors.js';
 
 /** 安全 id 格式：小写字母数字开头，仅允许 . _ -，禁止路径分隔符 */
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]*$/, 'id 必须匹配 ^[a-z0-9][a-z0-9._-]*$');
@@ -67,7 +68,7 @@ export function assertWithinBase(base: string, target: string, label: string): v
   const resolved = path.resolve(base, target);
   const rel = path.relative(base, resolved);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
-    throw new Error(`${label} 越界: ${target}（解析到 ${resolved}，base ${base}）`);
+    throw new UsageError(`${label} 越界: ${target}（解析到 ${resolved}，base ${base}）`);
   }
 }
 
@@ -79,7 +80,7 @@ function parseOrThrow<T>(schema: z.ZodType, raw: unknown, label: string): T {
       const issues = e.issues
         .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
         .join('; ');
-      throw new Error(`${label} 校验失败: ${issues}`, { cause: e });
+      throw new UsageError(`${label} 校验失败: ${issues}`, { cause: e });
     }
     throw e;
   }
@@ -96,9 +97,26 @@ export function validateAssetMeta(raw: unknown): AssetMeta {
 export function validateLockfile(raw: unknown): Lockfile {
   const parsed = parseOrThrow<Lockfile>(lockfileSchema, raw, 'lockfile');
   if (parsed.version !== LOCKFILE_SCHEMA_VERSION) {
-    throw new Error(
+    throw new UsageError(
       `lockfile schema 版本不兼容: ${parsed.version}（期望 ${LOCKFILE_SCHEMA_VERSION}）`,
     );
   }
   return parsed;
+}
+
+/** MCP body 结构校验：command 必填，args 可选；其余字段（env/cwd 等）透传 */
+const mcpBodySchema = z
+  .object({
+    command: z.string().min(1),
+    args: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+export interface McpBody {
+  command: string;
+  args?: string[];
+}
+
+export function validateMcpBody(raw: unknown): McpBody {
+  return parseOrThrow<McpBody>(mcpBodySchema, raw, 'MCP body');
 }

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import type { LoadedAsset } from '../core/types.js';
+import { validateMcpBody } from '../core/schema.js';
 
 export async function exists(p: string): Promise<boolean> {
   try {
@@ -19,7 +20,7 @@ export function aggregateMcp(mcps: LoadedAsset[]): {
   const errors: string[] = [];
   for (const m of mcps) {
     try {
-      mcpServers[m.meta.id] = JSON.parse(m.content);
+      mcpServers[m.meta.id] = validateMcpBody(JSON.parse(m.content));
     } catch {
       errors.push(m.meta.id);
     }

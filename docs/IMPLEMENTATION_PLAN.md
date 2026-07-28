@@ -314,14 +314,14 @@ diagnose    复诊：再跑诊断，症状应消除
 
 ### Phase 4.5 — 可靠性与安全补强（MVP 阻塞项）
 
-- [ ] managed placement state：解决 Windows copy 后续无法更新，并保护用户修改
-- [ ] 受管生成物垃圾回收：资产删除、重命名或兼容性变化后清理旧目标
-- [ ] renderer 前统一校验 `agents` + `supports`，所有不兼容项显式 skip
-- [ ] manifest / frontmatter / lockfile / MCP 运行时 schema 校验
-- [ ] id 格式、source path、target path 的目录边界校验
-- [ ] 稳定退出码；未知 agent、缺失资产、非法 MCP 不得成功返回
-- [ ] lockfile 与 placement state 使用完整 hash 和原子写入
-- [ ] 端到端测试矩阵通过：symlink、Windows copy 重同步、用户冲突、分层覆盖、非法输入、资产删除、双 agent
+- [x] managed placement state：解决 Windows copy 后续无法更新，并保护用户修改
+- [x] 受管生成物垃圾回收：资产删除、重命名或兼容性变化后清理旧目标
+- [x] renderer 前统一校验 `agents` + `supports`，所有不兼容项显式 skip
+- [x] manifest / frontmatter / lockfile / MCP 运行时 schema 校验
+- [x] id 格式、source path、target path 的目录边界校验
+- [x] 稳定退出码；未知 agent、缺失资产、非法 MCP 不得成功返回
+- [x] lockfile 与 placement state 使用完整 hash 和原子写入
+- [x] 端到端测试矩阵通过：symlink、Windows copy 重同步、用户冲突、分层覆盖、非法输入、资产删除、双 agent
 
 ### Phase 5 — prescribe 开方（2 天）
 - [ ] 技术栈信号扫描（deps / config files）

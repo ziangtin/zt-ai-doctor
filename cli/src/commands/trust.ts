@@ -1,18 +1,17 @@
 import { findAssetById } from '../core/market.js';
 import { readLockfile, writeLockfile, trustMcp } from '../core/lockfile.js';
 import { lockfilePath, resolveMarketPath } from '../core/paths.js';
-
-interface McpBody {
-  command?: string;
-  args?: string[];
-}
+import { validateMcpBody, type McpBody } from '../core/schema.js';
+import { UsageError } from '../core/errors.js';
 
 function parseMcpBody(content: string): McpBody {
+  let raw: unknown;
   try {
-    return JSON.parse(content) as McpBody;
+    raw = JSON.parse(content);
   } catch {
-    throw new Error('MCP body 非法 JSON');
+    throw new UsageError('MCP body 非法 JSON');
   }
+  return validateMcpBody(raw);
 }
 
 /** 检查 npx 命令是否固定了包版本，返回未固定的包名 */
@@ -35,10 +34,10 @@ export async function trustCommand(
   const marketPath = resolveMarketPath(opts.market);
   const asset = await findAssetById(marketPath, id);
   if (!asset) {
-    throw new Error(`药典中未找到: ${id}`);
+    throw new UsageError(`药典中未找到: ${id}`);
   }
   if (asset.meta.type !== 'mcp') {
-    throw new Error(`${id} 不是 mcp 类型（trust 仅用于 MCP）`);
+    throw new UsageError(`${id} 不是 mcp 类型（trust 仅用于 MCP）`);
   }
 
   const body = parseMcpBody(asset.content);
@@ -53,7 +52,7 @@ export async function trustCommand(
   const lockPath = lockfilePath(projectRoot);
   const lock = await readLockfile(lockPath);
   if (!lock) {
-    throw new Error('未建档，先运行 zai-doctor init');
+    throw new UsageError('未建档，先运行 zai-doctor init');
   }
   const updated = trustMcp(lock, id);
   await writeLockfile(lockPath, updated);

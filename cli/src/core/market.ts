@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
 import type { LoadedAsset, Manifest } from './types.js';
 import { assertWithinBase, validateAssetMeta, validateManifest } from './schema.js';
+import { UsageError } from './errors.js';
 
 /** 读取并校验药典 manifest */
 export async function loadManifest(marketPath: string): Promise<Manifest> {
@@ -24,10 +25,10 @@ export async function findAssetById(marketPath: string, id: string): Promise<Loa
   const parsed = matter(raw);
   const meta = validateAssetMeta(parsed.data);
   if (meta.id !== entry.id || meta.type !== entry.type) {
-    throw new Error(
+    throw new UsageError(
       `manifest 与 frontmatter 不一致: manifest=${entry.id}/${entry.type} frontmatter=${meta.id}/${meta.type}`,
     );
   }
-  const hash = createHash('sha256').update(raw).digest('hex').slice(0, 16);
+  const hash = createHash('sha256').update(raw).digest('hex');
   return { entry, meta, raw, content: parsed.content, hash };
 }

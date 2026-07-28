@@ -1,6 +1,7 @@
 import { findAssetById } from '../core/market.js';
 import { readLockfile } from '../core/lockfile.js';
 import { lockfilePath, resolveMarketPath } from '../core/paths.js';
+import { UsageError } from '../core/errors.js';
 
 /** info <id>：看某个资产详情 + 已装状态 + hash 一致性 */
 export async function infoCommand(
@@ -11,7 +12,7 @@ export async function infoCommand(
   const marketPath = resolveMarketPath(opts.market);
   const asset = await findAssetById(marketPath, id);
   if (!asset) {
-    throw new Error(`药典中未找到: ${id}`);
+    throw new UsageError(`药典中未找到: ${id}`);
   }
   const { meta, entry, hash, content } = asset;
   const lock = await readLockfile(lockfilePath(projectRoot));

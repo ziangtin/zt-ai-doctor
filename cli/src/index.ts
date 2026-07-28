@@ -10,6 +10,7 @@ import { infoCommand } from './commands/info.js';
 import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
 import { trustCommand } from './commands/trust.js';
+import { UsageError } from './core/errors.js';
 
 const VERSION = '0.1.0';
 
@@ -29,7 +30,7 @@ async function handle(fn: () => Promise<void>): Promise<void> {
     await fn();
   } catch (e) {
     console.error(`✗ ${(e as Error).message}`);
-    process.exit(1);
+    process.exit(e instanceof UsageError ? 2 : 1);
   }
 }
 

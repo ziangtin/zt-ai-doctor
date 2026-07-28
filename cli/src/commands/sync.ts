@@ -6,6 +6,8 @@ import { readLockfile } from '../core/lockfile.js';
 import { place, removeIfManaged } from '../core/place.js';
 import { resolveAssets } from '../core/layers.js';
 import { readManifest, writeManifest } from '../core/manifest.js';
+import { assertWithinBase } from '../core/schema.js';
+import { UsageError } from '../core/errors.js';
 import { renderers } from '../renderers/index.js';
 import type {
   AgentRenderer,
@@ -88,7 +90,7 @@ export async function runSync(
   if (opts.agent) {
     const r = renderers.find((x) => x.name === opts.agent);
     if (!r) {
-      throw new Error(`未知 agent: ${opts.agent}（可选: ${renderers.map((x) => x.name).join(', ')}）`);
+      throw new UsageError(`未知 agent: ${opts.agent}（可选: ${renderers.map((x) => x.name).join(', ')}）`);
     }
     active = [r];
   } else {
@@ -116,6 +118,7 @@ export async function runSync(
         all.push(p);
         continue;
       }
+      assertWithinBase(projectRoot, p.targetPath, `${r.name} target`);
       const prev = prevManifest.get(p.targetPath);
       const { placement, record } = await place(p, prev, opts.copy);
       all.push(placement);

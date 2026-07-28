@@ -4,12 +4,13 @@ import { agentsDir, assetSubdir, lockfilePath, resolveMarketPath } from '../core
 import { findAssetById } from '../core/market.js';
 import { readLockfile, upsertAsset, writeLockfile } from '../core/lockfile.js';
 import { runSync } from './sync.js';
+import { UsageError } from '../core/errors.js';
 
 /**
  * 下药：install + sync。
  * install：把指定资产从药典拷进 .agents/<type>/，更新 lockfile。
  * sync：渲染成各 agent 配置（软链优先/降级 copy）+ placement 报告。
- * 处方单（不带 ids）在 Phase 5。任意 id 未找到 -> 退出码 1（2.5）。
+ * 处方单（不带 ids）在 Phase 5。任意 id 未找到 -> 退出码 2（参数错误）。
  */
 export async function treatCommand(
   projectRoot: string,
@@ -24,7 +25,7 @@ export async function treatCommand(
   const lockPath = lockfilePath(projectRoot);
   let lock = await readLockfile(lockPath);
   if (!lock) {
-    throw new Error('未建档，先运行 zai-doctor init');
+    throw new UsageError('未建档，先运行 zai-doctor init');
   }
 
   const marketPath = resolveMarketPath(opts.market);
@@ -62,6 +63,6 @@ export async function treatCommand(
   await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
 
   if (notFound > 0) {
-    process.exit(1);
+    process.exit(2);
   }
 }

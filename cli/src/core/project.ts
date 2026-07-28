@@ -42,7 +42,7 @@ async function loadDir(
     const parsed = matter(raw);
     const meta = validateAssetMeta(parsed.data);
     if (forceLayer) meta.layer = forceLayer;
-    const hash = createHash('sha256').update(raw).digest('hex').slice(0, 16);
+    const hash = createHash('sha256').update(raw).digest('hex');
     const entry: ManifestAssetEntry = {
       id: meta.id,
       type: meta.type,

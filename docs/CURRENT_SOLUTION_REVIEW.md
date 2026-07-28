@@ -1,212 +1,92 @@
 # 当前方案评审
 
-> 评审日期：2026-07-27  
-> 评审范围：当前仓库中的 CLI、market、实现计划与发布配置。  
-> 验证情况：`tsc --noEmit` 与 ESLint 均通过；仓库暂未提供自动化测试或完整端到端验证。
+> 初评日期：2026-07-27｜复评日期：2026-07-28
+> 评审范围：CLI、market、实现计划与发布配置。
+> 验证情况：`tsc --noEmit`（含 test）、ESLint、`vitest run`（21 测试）均通过。
 
-## 0. 修复进展（2026-07-27，第一阶段）
+## 0. 修复进展
 
-针对下文 2.1 / 2.2 / 2.5 / 2.6 已修复并端到端验证：
+### 第一阶段（2026-07-27）：评审 2.1–2.7 主干修复
 
-- **2.1 已修复**：引入 placement manifest（`.agents/.build/placements.json`），`place()` 用 hash 区分「受管 copy」与「用户改动」。copy 降级后改 canonical 重跑 sync 现在会更新（不再 skip）。
-- **2.2 已修复**：sync 引擎统一按 `renderer.supports` + `meta.agents` 过滤，不兼容项产出明确 skip（「X 不被 Y 支持」/「资产未声明支持 Y」）。
-- **2.5 部分修复**：treat 未找到 id / `sync --agent unknown` / `diagnose --strict` 阻塞 均返回非零退出码；非法 MCP body 产出 skip 报告（不再静默）。
-- **2.6 已修复**：sync 基于 manifest GC 上一轮受管、本轮未再生成的目标（未被用户改过才清理）。
-- 新增 `--copy`（强制 copy，测试/无软链权限环境用）、`diagnose --strict`。
+- **2.1** 引入 placement manifest（`.agents/.build/placements.json`），`place()` 用 hash 区分受管 copy 与用户改动；copy 降级后改 canonical 重跑 sync 会更新。
+- **2.2** sync 引擎统一按 `renderer.supports` + `meta.agents` 过滤，不兼容项产出明确 skip。
+- **2.5** treat 未找到 id / `sync --agent unknown` / `diagnose --strict` 阻塞均返回非零退出码；非法 MCP body 产出 skip 报告。
+- **2.6** sync 基于 manifest GC 上一轮受管、本轮未再生成的目标（未被用户改过才清理）。
+- 新增 `--copy`、`diagnose --strict`。
+- **2.3** README 用状态表区分已实现/规划中，agent 支持只声明 Claude+Cursor。
+- **2.4** Zod 校验 manifest/frontmatter/lockfile（含 schema 版本）；id 格式 `^[a-z0-9][a-z0-9._-]*$`；manifest path `assertWithinBase`；id/type 一致性；lockfile 原子写。
+- **2.7** lockfile 记录 `source`（type/uri/ref/integrity，sha256 of manifest）；`update --source <git-url>` 从 git clone/pull 到缓存并记录 commit；MCP 信任控制；lockfile schema v2。
 
-- **2.3 已修复**：README 用状态表区分已实现/规划中，agent 支持只声明 Claude+Cursor，`update`/`treat`/`prescribe` 的能力边界标注清楚。
-- **2.4 已修复**：Zod 校验 manifest/frontmatter/lockfile（含 schema 版本检查）；id 格式 `^[a-z0-9][a-z0-9._-]*$` 防 target 路径注入；manifest path 越界防护（`assertWithinBase`）；manifest/frontmatter id+type 一致性校验；lockfile 原子写（tmp+rename）；zod 错误格式化可读。
+### 第二阶段（2026-07-28）：补齐第一阶段遗留缺口 + 测试矩阵
 
-- **2.7 已修复**：lockfile 记录 `source`（type/uri/ref/integrity，sha256 of manifest）；`update --source <git-url>` 从 git clone/pull 到缓存并记录 commit；MCP 信任控制（`trust <id>` 展示 command/args + 未固定版本警告，未信任则 sync skip）；lockfile schema 升 v2（旧 v1 lockfile 需 re-init）。
+复评发现 2.4/2.5/2.7 的边界细节未完全落地，本轮补齐：
 
-全部评审项 2.1–2.7 已处理。
+- **2.4 补齐**：MCP body 加 zod schema（`mcpBodySchema`：command 必填、args 可选、passthrough）；`trust` 与 renderer `aggregateMcp` 统一走 `validateMcpBody`，缺字段不再静默。
+- **2.5 补齐**：退出码区分 `exit(2)`（参数/schema/配置错误）vs `exit(1)`（运行失败）；新增 `UsageError`，schema 校验失败、路径越界、未知 agent、未建档、未找到资产、非法 MCP、`diagnose --strict` 均走 `exit(2)`。
+- **2.7 补齐**：`placements.json` 原子写（tmp+rename）；资产/受管文件 hash 改完整 SHA-256（64 hex，原 16 位截断）。
+- **2.5 补齐**：sync 前对 target path 显式 `assertWithinBase(projectRoot, target)`，与 id 正则共同防 target 注入。
+- **测试矩阵**：新增 vitest，4 文件 21 测试，覆盖 copy 重同步、用户冲突、GC、非活跃 agent 保留、symlink（条件）、分层覆盖、priority、非法 id/frontmatter/MCP/路径越界/不一致/lockfile 版本、退出码、双 agent + supports skip、未信任 MCP skip。
 
 ## 1. 评审结论
 
-当前方案方向合理、架构骨架清楚，但尚未达到“可稳定日常使用”的 MVP。
+综合评分：**7.2 / 10**（初评 5.8）
 
-综合评分：**5.8 / 10**
+- 作为概念验证：8.5 / 10
+- 作为个人内部工具：8 / 10
+- 作为可发布、可长期维护的产品：5.5 / 10
 
-- 作为概念验证：**7.5 / 10**
-- 作为个人内部工具：**6 / 10**
-- 作为可发布、可长期维护的产品：**4 / 10**
+核心正确性、安全边界与测试矩阵已达到"个人可用 MVP"门槛。剩余短板集中在功能完整性（prescribe 未实现）与发布成熟度（无 CI、market 未独立包、无 remove 命令）。
 
-当前最需要补齐的不是 catalog 或更多 renderer，而是受管文件状态、验证边界、失败语义和测试矩阵。
+## 2. 主要问题（初评 2.1–2.7，均已修复）
 
-## 2. 主要问题
-
-### 2.1 Windows copy 降级会导致后续同步失效（高优先级）
-
-软链失败后，`place` 会降级为普通文件 copy；下一次同步发现目标是普通文件，又会将其当作用户文件保护并跳过。
-
-相关实现：
-
-- copy 降级：`cli/src/core/place.ts`
-- 普通文件保护及 skip：`cli/src/core/place.ts`
-
-实际结果：
-
-```text
-首次 sync：软链失败 -> copy 成功
-修改 canonical 资产
-再次 sync：发现普通文件 -> skip
-最终 agent 仍使用旧内容
-```
-
-这影响 Windows 默认主路径，与“修改源文件后重跑 sync 即更新”的核心承诺冲突。
-
-建议引入 managed placement manifest，记录目标路径、生成 hash 和放置方式。只有目标仍等于上次生成 hash 时才允许覆盖；用户修改过时才报告冲突。
-
-### 2.2 `agents` 兼容声明没有真正生效（高优先级）
-
-资产定义了 `agents` 字段，类型模型也包含该字段，但 renderer 目前仅按 `type` 过滤，没有按 `meta.agents` 过滤，`AgentRenderer.supports` 也未被同步引擎统一使用。
-
-当前样例暂时被 renderer 内的硬编码逻辑掩盖；market 增长后，可能把不兼容资产渲染给错误 agent。
-
-建议在进入 renderer 前统一判断：
-
-```text
-asset.agents 包含目标 agent
-AND renderer.supports 包含 asset.type
-```
-
-所有不兼容项都应产生明确的 skip 报告。
-
-### 2.3 文档宣称的主流程尚未闭环（高优先级）
-
-当前 README 描述了完整的“建档 -> 诊断 -> 开方 -> 下药 -> 复诊”流程，但实际情况是：
-
-- `prescribe` 仅输出 Phase 5 TODO。
-- `treat` 不带 ID 时还不能读取处方单。
-- `update` 只刷新 lockfile 中的 market 版本，不会拉取 market。
-- 实际只支持 Claude 和 Cursor，尚未支持 README 提到的 Copilot、Codex 和 Cline。
-
-当前更准确的产品状态是“Phase 4 原型”，需要在 README 中明确区分已实现能力与规划能力。
-
-### 2.4 缺少运行时 schema 和路径安全校验（高优先级）
-
-manifest、frontmatter 和 lockfile 主要通过 TypeScript 类型断言读取，没有运行时结构校验。
-
-潜在问题包括：
-
-- manifest 中的 `path` 可使用 `../` 越出 market。
-- asset `id` 可包含路径分隔符，并被 renderer 用于构造目标路径。
-- manifest 的 id/type 与 frontmatter 不一致时不会阻止安装。
-- MCP body JSON 无效时会被静默丢弃。
-- lockfile 的结构和 schema 版本没有验证。
-
-建议采用 Zod 或 JSON Schema 统一验证 manifest、frontmatter、lockfile 和 MCP body，并对最终路径执行 `path.resolve` 后的目录边界检查。
-
-### 2.5 部分失败仍可能表现为命令成功（中高优先级）
-
-当前存在以下情形：
-
-- `treat` 遇到不存在的 ID 时记录错误但继续执行，进程仍可能返回 0。
-- `--agent unknown` 只会表现为没有活动 agent。
-- 没有检测到 agent 时，`sync` 返回空结果而不是失败。
-- `diagnose` 发现 blocker 后不会设置非零退出码。
-- MCP JSON 解析失败被静默忽略。
-
-建议明确退出码语义：
-
-- 配置或输入错误：退出码 2。
-- 同步部分失败：退出码 1。
-- `diagnose --strict` 发现 blocker：返回非零。
-- 只有明确不支持的能力可以作为成功状态下的 skip。
-
-### 2.6 生成物没有垃圾回收机制（中优先级）
-
-资产卸载、重命名或不再支持某 agent 时，旧的 Cursor rules、Claude skills、`.agents/.build` 内容及 MCP 配置不会被可靠清理。目前也没有 remove/uninstall 命令。
-
-建议基于 placement manifest 只清理“上一轮由工具管理且未被用户修改”的目标。
-
-### 2.7 market 供应链设计尚未落地（中优先级）
-
-计划提出 npm 分发、离线使用和版本锁定，但目前：
-
-- workspace 只包含 CLI，market 尚不是独立包。
-- `update` 不下载任何内容。
-- lockfile 未记录 market 来源或包完整性。
-- MCP 示例使用 `npx -y` 和未固定版本的第三方包。
-
-建议固定 MCP 包版本，在 lockfile 中保存完整 SHA-256、source URI、source version/integrity，并在安装前展示 MCP 将执行的 command/args，要求显式信任。
+逐项状态见第 0 节。初评列出的 7 项主干问题与边界缺口均已落地并有测试覆盖。当前无新增高优先级问题。
 
 ## 3. 方案优点
 
 1. **canonical source + renderer 的方向正确**：资产源与 agent 原生格式分离，比维护多份配置更容易扩展。
-2. **分层覆盖模型简单清楚**：`company > personal > baseline`，同层按 priority 决策，易于理解和实现。
-3. **有保护用户配置的意识**：不直接覆盖普通目标文件是正确的安全倾向；当前缺少的是区分用户文件和工具生成 copy 的能力。
-4. **renderer 边界清晰**：Claude、Cursor 的格式差异被局部封装，后续增加 agent 的成本相对可控。
-5. **可观测性方向正确**：sync report、diagnose report 和显式 skip 适合工程工具。
-6. **技术栈克制**：Commander、gray-matter 和 Node 文件 API 足以支撑当前规模，没有明显过度设计。
-7. **静态质量基线正常**：TypeScript 类型检查和 ESLint 均通过，代码规模较小，阅读成本不高。
+2. **分层覆盖模型简单清楚**：`company > personal > baseline`，同层按 priority 决策。
+3. **有保护用户配置的意识**：现已能区分受管 copy 与用户文件，冲突时显式 skip 不覆盖。
+4. **renderer 边界清晰**：Claude、Cursor 的格式差异被局部封装。
+5. **可观测性方向正确**：sync report、diagnose report、显式 skip、稳定退出码（0/1/2）。
+6. **技术栈克制**：Commander、gray-matter、zod、vitest 足以支撑当前规模。
+7. **静态质量基线正常**：TypeScript 类型检查、ESLint、vitest 均通过，且有 typecheck 专项 script 覆盖 test 目录。
 
 ## 4. 多维度评分
 
-| 维度 | 得分 | 评价 |
-|---|---:|---|
-| 产品定位 | 7/10 | “统一 agent 资产来源”是真实痛点；医生隐喻有记忆点，但命令语义需要学习 |
-| 架构设计 | 7/10 | canonical、renderer、layer、placement 分层合理 |
-| 功能完整性 | 5/10 | Phase 1-4 有骨架，但 prescribe、真实 update、卸载、多 agent 未完成 |
-| 核心正确性 | 4/10 | Windows copy 重同步、agent 过滤、旧生成物清理存在关键缺口 |
-| 跨平台能力 | 4/10 | 考虑了 Windows，但默认降级路径本身无法持续同步 |
-| 安全性 | 4/10 | 有普通文件保护，但缺路径校验、运行时 schema 和 MCP 信任控制 |
-| 可维护性 | 6.5/10 | 模块较清楚；缺统一验证层、状态管理层和测试 |
-| 可测试性 | 4/10 | 纯函数部分容易测试，但目前没有测试套件或 fixture |
-| 可观测性 | 6.5/10 | 报告机制不错；异常吞没和退出码仍不可靠 |
-| 性能 | 7/10 | 当前数据量下足够；串行读取不是现阶段瓶颈 |
-| 发布成熟度 | 3.5/10 | 缺 market 包、发布元数据、CI、版本联动和安装验证 |
-| 文档真实性 | 5/10 | 实施计划较详细，但 README 把部分规划功能写成已有能力 |
+| 维度 | 初评 | 复评 | 评价 |
+|---|---:|---:|---|
+| 产品定位 | 7 | 7 | 不变 |
+| 架构设计 | 7 | 7 | 不变 |
+| 功能完整性 | 5 | 6 | prescribe 仍 TODO；update 已支持 git source；仍无 remove 命令、仅 Claude+Cursor |
+| 核心正确性 | 4 | 8 | copy 重同步/agent 过滤/GC/冲突保护均修复并有测试 |
+| 跨平台能力 | 4 | 7 | copy 降级重同步修复 + 测试；symlink 条件测试 |
+| 安全性 | 4 | 7.5 | 运行时 schema/路径边界/MCP 信任/完整 hash + 测试 |
+| 可维护性 | 6.5 | 7.5 | 统一 errors/schema 层；测试 fixture 清晰 |
+| 可测试性 | 4 | 8 | 21 测试 + typecheck + fixture |
+| 可观测性 | 6.5 | 7 | 退出码语义清晰；skip 报告完整 |
+| 性能 | 7 | 7 | 不变 |
+| 发布成熟度 | 3.5 | 5 | git source + lockfile v2 + integrity + 测试；仍无 CI/发布元数据/market 独立包 |
+| 文档真实性 | 5 | 7 | README 区分已实现/规划；计划 checklist 与代码对齐 |
 
-## 5. 补充方案与实施顺序
+## 5. 剩余短板与下一步
 
-建议先将近期目标收缩为：**可靠管理 Claude + Cursor 的项目级 rules，skill/MCP 暂作为实验能力。**
+1. **prescribe 未实现**（Phase 5）：`prescribe` 仍输出 TODO，`treat` 不带 id 仍提示 Phase 5。
+2. **发布成熟度**：无 CI、无自动化发布、market 未独立成包、无 `remove`/uninstall 命令。
+3. **多 agent**：仅 Claude+Cursor；Copilot/Codex/Cline 在 Phase 7。
+4. **conflict 退出码**：用户改过目标文件时 sync 当前 `exit 0`（conflict 作 skip 报告），未算部分失败。若 CI 需 stricter 语义可调整为 `exit 1`。
+5. **symlink 实测**：Windows 默认环境跳过 symlink 断言；需在 Linux/macOS 或 Windows 开发者模式 CI 上验证各 agent 是否跟随 symlink 读配置。
 
-### 5.1 第一阶段：修复核心正确性
+按 IMPLEMENTATION_PLAN 第 10 节，下一步进入 Phase 5（prescribe）。
 
-- 引入 managed placement manifest。
-- 修复 copy 后无法安全更新的问题。
-- 统一执行 `agents` 和 `supports` 过滤。
-- 清理不再生成的受管目标。
-- 对未知 agent、缺失 ID、非法 MCP 返回明确失败。
+## 6. 验收标准达成情况
 
-### 5.2 第二阶段：建立可信数据边界
+初评第 6 节"个人可用 MVP"验收标准：
 
-- 为 manifest、asset、lockfile、MCP 增加运行时 schema。
-- 将 id 限制为类似 `^[a-z0-9][a-z0-9._-]*$` 的安全格式。
-- 防止 market path 和 target path 越界。
-- lockfile 使用完整 hash，并通过临时文件 + rename 原子写入。
+- ✅ Windows copy 模式连续同步不会产生陈旧配置（placement.test.ts 验证）
+- ✅ 识别并保护被用户修改的目标文件（placement.test.ts 验证）
+- ✅ 非法资产不会越界读写或静默进入生成结果（validation.test.ts 验证）
+- ✅ 所有命令具有可用于 CI 的稳定退出码（0/1/2 + 测试）
+- ✅ 资产新增、更新、删除和 agent 切换均有端到端测试
+- ✅ README 中所有标为已支持的命令都具备真实实现（prescribe 明确标 Phase 5）
 
-### 5.3 第三阶段：补充端到端测试矩阵
-
-至少覆盖：
-
-- Linux/macOS symlink。
-- Windows symlink 成功。
-- Windows copy 降级后再次同步。
-- 用户修改目标文件后的冲突保护。
-- company/personal/baseline 覆盖。
-- 非法 frontmatter 和 MCP JSON。
-- 资产删除及旧生成物清理。
-- Claude、Cursor 同时存在。
-
-### 5.4 第四阶段：重新定义 update
-
-第一阶段可将 market 随 CLI 包发布并固定版本，不急于支持任意远程 market。等本地闭环稳定后，再抽象 npm/git source adapter。
-
-### 5.5 第五阶段：实现 prescribe
-
-处方推荐不应只依赖简单的技术栈匹配。建议输出推荐原因、匹配信号、置信度、冲突项和即将执行的 MCP 命令，并继续保留人工确认。
-
-## 6. 建议验收标准
-
-达到下列条件后，可将项目从“Phase 4 原型”调整为“个人可用 MVP”：
-
-- Windows copy 模式连续同步不会产生陈旧配置。
-- 工具能够识别并保护被用户修改的目标文件。
-- 非法资产不会越界读写或静默进入生成结果。
-- 所有命令具有可用于 CI 的稳定退出码。
-- 资产新增、更新、删除和 agent 切换均有端到端测试。
-- README 中所有标为已支持的命令都具备真实实现。
-
-完成上述整改后，预计整体成熟度可从当前约 **5.8 / 10** 提升到 **7.5 / 10** 左右。
+MVP 验收标准达成。

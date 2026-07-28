@@ -163,6 +163,6 @@ export async function diagnoseCommand(
   }
 
   if (opts.strict && blocks > 0) {
-    process.exit(1);
+    process.exit(2);
   }
 }

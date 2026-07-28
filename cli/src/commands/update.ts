@@ -4,6 +4,7 @@ import { loadManifest } from '../core/market.js';
 import { readLockfile, writeLockfile } from '../core/lockfile.js';
 import { hashFileFull } from '../core/hash.js';
 import { syncGitSource, gitHead } from '../core/source.js';
+import { UsageError } from '../core/errors.js';
 import type { MarketSource } from '../core/types.js';
 
 /**
@@ -18,7 +19,7 @@ export async function updateCommand(
   const lockPath = lockfilePath(projectRoot);
   const lock = await readLockfile(lockPath);
   if (!lock) {
-    throw new Error('未建档，先运行 zai-doctor init');
+    throw new UsageError('未建档，先运行 zai-doctor init');
   }
 
   const oldVer = lock.market.version;

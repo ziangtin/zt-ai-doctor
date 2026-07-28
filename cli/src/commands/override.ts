@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, assetSubdir, resolveMarketPath } from '../core/paths.js';
 import { findAssetById } from '../core/market.js';
+import { UsageError } from '../core/errors.js';
 
 async function exists(p: string): Promise<boolean> {
   try {
@@ -24,13 +25,13 @@ export async function overrideCommand(
   const marketPath = resolveMarketPath(opts.market);
   const asset = await findAssetById(marketPath, id);
   if (!asset) {
-    throw new Error(`药典中未找到: ${id}`);
+    throw new UsageError(`药典中未找到: ${id}`);
   }
 
   const targetDir = path.join(agentsDir(projectRoot), 'company', assetSubdir(asset.meta.type));
   const targetFile = path.join(targetDir, path.basename(asset.entry.path));
   if (await exists(targetFile)) {
-    throw new Error(
+    throw new UsageError(
       `已存在 company 覆盖: ${path.relative(projectRoot, targetFile)}（直接编辑，或删除后重试）`,
     );
   }
