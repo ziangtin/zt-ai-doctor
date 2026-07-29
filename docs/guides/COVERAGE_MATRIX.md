@@ -31,5 +31,5 @@ zai-doctor 各 renderer 对资产类型（rule/skill/mcp）的支持与目标路
 ## 风险 / 待验证
 
 - 各 agent 是否跟随 symlink 读配置未完全验证（Windows 默认 copy 降级已覆盖；CI 上 symlink 待测）。
-- agent 配置格式演进快，本表基于 2026-07 已知约定；若 agent 格式变更，renderer 需同步更新。
+- agent 配置格式演进快，本表基于 2026-07 已知约定（均对照官方文档核实）；若 agent 格式变更，改 `cli/market/agents.json` 即可，无需动 TS。
 - `AGENTS.md` 是多 agent 约定，codex 的 detect 可能与其它工具重叠；用 `--agent codex` 显式指定。

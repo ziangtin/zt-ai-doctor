@@ -62,18 +62,20 @@ flowchart LR
 
 ## 3. sync 引擎实现流程（实现 · 核心）
 
-对应 [sync.ts](../cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。
+对应 [sync.ts](../cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。renderer 由 `cli/market/agents.json` 配置驱动（`loadRenderers`），项目可 `.agents/agents.json` 覆盖。
 
 ```mermaid
 flowchart TD
     S0["loadProjectAssets<br/>读 .agents/ 各层资产"] --> S1["resolveAssets<br/>分层合并 company&gt;personal&gt;baseline<br/>同层 priority 取大"]
-    S1 --> S2["选 renderer<br/>detect 各 agent 或 --agent 指定<br/>未知 agent -> exit 2"]
+    S1 --> S2["loadRenderers（读 agents.json）<br/>detectConfig 配置探测 或 --agent 多选<br/>--installed-only 按环境过滤<br/>未知 agent -> exit 2"]
     S2 --> S3["applicableAssets 过滤<br/>supports + meta.agents + MCP 信任<br/>不兼容 -> skip"]
-    S3 --> S4["renderAll<br/>生成构建产物 + Placement"]
+    S3 --> S4["renderAll（transforms.ts 转换）<br/>生成构建产物 + Placement"]
     S4 --> S5["place<br/>软链优先 / 降级 copy<br/>受管冲突保护"]
     S5 --> S6["GC<br/>上一轮受管、本轮未再生成的目标<br/>未被用户改过才清理"]
     S6 --> S7["writeManifest 原子写<br/>+ sync-report.md"]
 ```
+
+> **两种 agent 探测**：`detectConfig`（配置探测，看项目标记文件如 `.claude`/`CLAUDE.md`）用于 sync 自动选 renderer；`zai-doctor detect`（环境探测，查 PATH / 全局目录 / 注册表）判断机器是否真装了 agent。两者独立，配置可在环境未装时预生成。
 
 ---
 
