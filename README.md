@@ -39,9 +39,8 @@ agent-agnostic 的个人 coding-agent 工程化工具。像医生一样：**建�
 
 ```
 zt-ai-doctor/
-├── cli/        # zai-doctor CLI（Node + TS）
-├── market/     # canonical 资产（药典）
-├── catalog/    # 静态站（Astro，扫 market 生成）
+├── cli/        # zai-doctor CLI（Node + TS）+ market/（canonical 资产，随包发布）
+├── catalog/    # 静态站（Astro，扫 cli/market 生成）
 └── docs/       # 设计、计划、评审
 ```
 

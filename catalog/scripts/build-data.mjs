@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const marketDir = path.resolve(__dirname, '..', '..', 'market');
+const marketDir = path.resolve(__dirname, '..', '..', 'cli', 'market');
 const outFile = path.resolve(__dirname, '..', 'src', 'data', 'catalog.json');
 
 const manifest = JSON.parse(

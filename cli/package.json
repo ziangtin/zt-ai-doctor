@@ -7,6 +7,16 @@
     "zai-doctor": "./dist/index.js"
   },
   "main": "./dist/index.js",
+  "license": "MIT",
+  "author": "zhangting",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ziangtin/zt-ai-doctor.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/ziangtin/zt-ai-doctor#readme",
+  "keywords": ["claude-code", "cursor", "copilot", "codex", "cline", "windsurf", "coding-agent", "mcp", "rules"],
+  "files": ["dist", "market"],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
