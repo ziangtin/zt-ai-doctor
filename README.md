@@ -12,6 +12,21 @@ agent-agnostic 的个人 coding-agent 工程化工具。像医生一样：**建�
 - **同步转化**：一条命令把 `.agents/` 渲染成各 agent 原生配置（软链优先，降级 copy，受管文件冲突保护）
 - **诊断**：检查项目 agent 配置工程化是否到位，出症状报告
 
+## 快速开始
+
+```bash
+# 接入
+git clone https://github.com/ziangtin/zt-ai-doctor.git && cd zt-ai-doctor && pnpm install
+
+# 看诊流程（dev 模式）
+pnpm --filter zai-doctor dev -- init          # 建档
+pnpm --filter zai-doctor dev -- diagnose      # 诊断
+pnpm --filter zai-doctor dev -- prescribe     # 开方（编辑 .agents/.build/prescription.md 勾选）
+pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sync）
+```
+
+完整接入与使用文档见 [docs/USAGE.md](docs/USAGE.md)。
+
 ## 命令
 
 | 命令 | 状态 | 作用 |
