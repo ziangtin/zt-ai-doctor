@@ -2,7 +2,7 @@ import path from 'node:path';
 import { lockfilePath, resolveMarketPath } from '../core/paths.js';
 import { readLockfile } from '../core/lockfile.js';
 import { loadManifest, findAssetById } from '../core/market.js';
-import { renderers } from '../renderers/index.js';
+import { loadRenderers } from '../renderers/index.js';
 import { detectStack, matchAsset } from '../core/stack.js';
 import {
   writePrescription,
@@ -39,8 +39,9 @@ export async function prescribeCommand(
   const stack = await detectStack(projectRoot);
 
   const detectedAgents: string[] = [];
+  const renderers = await loadRenderers(projectRoot);
   for (const r of renderers) {
-    if (await r.detect(projectRoot)) detectedAgents.push(r.name);
+    if (await r.detectConfig(projectRoot)) detectedAgents.push(r.name);
   }
 
   // 轻量诊断

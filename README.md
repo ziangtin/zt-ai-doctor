@@ -56,11 +56,12 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 | `init` | ✅ | 建档：建 `.agents/` + lockfile |
 | `list` | ✅ | 查药典：列资产 + 已装状态（`--type`/`--tag` 筛选） |
 | `info <id>` | ✅ | 查资产详情 + 已装状态 + hash 一致性 |
-| `diagnose` | ✅ | 诊断：agent 配置/资产健康/药典新鲜度/环境，出症状报告（`--strict` 阻塞返回非零） |
-| `treat [ids...]` | ✅ | 下药：装资产 + sync 渲染 + placement 报告（不带 id 按处方单抓药） |
+| `diagnose` | ✅ | 诊断：agent 探测(配置+环境)/资产健康/药典新鲜度，出症状报告（`--strict` 阻塞返回非零） |
+| `detect` | ✅ | 环境探测：机器上实际装了哪些 agent（PATH / 全局目录 / Windows 注册表，`--json`/`--verbose`） |
+| `treat [ids...]` | ✅ | 下药：装资产 + sync 渲染 + placement 报告（不带 id 按处方单抓药，`--agent` 支持多选） |
 | `override <id>` | ✅ | 覆盖：拷资产到 `.agents/company/` 作 company 覆盖起点 |
 | `remove <id>` | ✅ | 移除：删已装资产 + sync 清理 agent 配置（company overlay 不动） |
-| `sync` | ✅ | 换药：渲染 `.agents/` 到 agent 配置（`--copy` 强制 copy） |
+| `sync` | ✅ | 换药：渲染 `.agents/` 到 agent 配置（`--agent` 多选 / `--copy` / `--installed-only`） |
 | `update` | ✅ | 药典更新：刷新版本 + integrity；`--source <git-url>` 从 git 拉取 |
 | `trust <id>` | ✅ | 信任 MCP：展示 command/args + 未固定版本警告（未信任则 sync 不写 MCP 配置） |
 | `prescribe` | ✅ | 开方：技术栈匹配 + 处方单（`--tag` 筛选）；`treat` 不带 id 按处方单抓药 |
@@ -69,7 +70,8 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 
 ## Agent 支持
 
-- **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf
+- **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf、Trae、Lingma（通义灵码 / Qoder CN）
+- **配置驱动**：agent 的映射/探测全部由 `cli/market/agents.json` 声明，项目可在 `.agents/agents.json` 覆盖或新增 agent（无需改 TS）。见 [docs/guides/AGENTS_CONFIG.md](docs/guides/AGENTS_CONFIG.md)
 - 类型覆盖矩阵见 [docs/guides/COVERAGE_MATRIX.md](docs/guides/COVERAGE_MATRIX.md)
 
 ## 仓库结构

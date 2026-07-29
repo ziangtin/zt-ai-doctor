@@ -8,7 +8,9 @@ import { resolveAssets } from '../core/layers.js';
 import { readManifest, writeManifest } from '../core/manifest.js';
 import { assertWithinBase } from '../core/schema.js';
 import { UsageError } from '../core/errors.js';
-import { renderers } from '../renderers/index.js';
+import { loadRenderers } from '../renderers/index.js';
+import { loadAgentConfig } from '../core/agentConfig.js';
+import { detectAgentEnv } from '../core/envDetect.js';
 import type {
   AgentRenderer,
   LayerOverride,
@@ -70,10 +72,29 @@ function applicableAssets(
   return { applicable, skips };
 }
 
+/** 解析 --agent 逗号多选 -> renderer 列表；未知名报错 */
+function parseAgents(
+  raw: string | undefined,
+  renderers: AgentRenderer[],
+): { found: AgentRenderer[]; unknown: string[] } {
+  const names = (raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const found: typeof renderers = [];
+  const unknown: string[] = [];
+  for (const n of names) {
+    const r = renderers.find((x) => x.name === n);
+    if (r) found.push(r);
+    else unknown.push(n);
+  }
+  return { found, unknown };
+}
+
 /** sync 核心：读 .agents/ -> 层级合并 -> 按 agent + 信任过滤 -> 渲染 + 放置（受管）+ GC + 报告 */
 export async function runSync(
   projectRoot: string,
-  opts: { agent?: string; copy?: boolean } = {},
+  opts: { agent?: string; copy?: boolean; installedOnly?: boolean } = {},
 ): Promise<Placement[]> {
   const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
   for (const e of loadErrors) console.log(`  ⚠ 跳过非法资产: ${e}`);
@@ -86,18 +107,39 @@ export async function runSync(
   const lock = await readLockfile(lockfilePath(projectRoot));
   const trustedMcp = new Set(lock?.trustedMcp ?? []);
 
-  // 选 renderer（--agent 指定但不存在 -> 报错，2.5）
+  const renderers = await loadRenderers(projectRoot);
+  const names = renderers.map((r) => r.name);
+
+  // 选 renderer（--agent 支持逗号多选；未知名报错）
   let active: AgentRenderer[] = [];
   if (opts.agent) {
-    const r = renderers.find((x) => x.name === opts.agent);
-    if (!r) {
-      throw new UsageError(`未知 agent: ${opts.agent}（可选: ${renderers.map((x) => x.name).join(', ')}）`);
+    const { found, unknown } = parseAgents(opts.agent, renderers);
+    if (unknown.length) {
+      throw new UsageError(`未知 agent: ${unknown.join(', ')}（可选: ${names.join(', ')}）`);
     }
-    active = [r];
+    active = found;
   } else {
-    for (const r of renderers) if (await r.detect(projectRoot)) active.push(r);
+    for (const r of renderers) if (await r.detectConfig(projectRoot)) active.push(r);
     if (active.length === 0) {
-      console.log(`🔄 [sync] 未检测到 agent，用 --agent <${renderers.map((x) => x.name).join('|')}> 指定`);
+      console.log(`🔄 [sync] 未检测到 agent 配置，用 --agent <${names.join('|')}> 指定`);
+      return [];
+    }
+  }
+
+  // --installed-only：按环境探测过滤（默认关，允许预生成配置）
+  if (opts.installedOnly) {
+    const configs = await loadAgentConfig(projectRoot);
+    const filtered: AgentRenderer[] = [];
+    for (const r of active) {
+      const cfg = configs.find((c) => c.name === r.name);
+      if (!cfg) continue;
+      const env = await detectAgentEnv(cfg);
+      if (env.installed) filtered.push(r);
+      else console.log(`  ⏭ 跳过 ${r.name}（环境未检测到本体）`);
+    }
+    active = filtered;
+    if (active.length === 0) {
+      console.log('🔄 [sync] --installed-only 过滤后无活跃 agent');
       return [];
     }
   }
@@ -162,7 +204,7 @@ export async function runSync(
 
 export async function syncCommand(
   projectRoot: string,
-  opts: { agent?: string; copy?: boolean },
+  opts: { agent?: string; copy?: boolean; installedOnly?: boolean },
 ): Promise<void> {
   await runSync(projectRoot, opts);
 }

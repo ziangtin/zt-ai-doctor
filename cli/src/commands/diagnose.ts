@@ -5,7 +5,9 @@ import { readLockfile } from '../core/lockfile.js';
 import { loadProjectAssets } from '../core/project.js';
 import { findAssetById } from '../core/market.js';
 import { hashFileFull } from '../core/hash.js';
-import { renderers } from '../renderers/index.js';
+import { loadRenderers } from '../renderers/index.js';
+import { loadAgentConfig } from '../core/agentConfig.js';
+import { detectAllEnv } from '../core/envDetect.js';
 import type { AssetType } from '../core/types.js';
 
 type Severity = 'block' | 'warn' | 'info';
@@ -44,10 +46,16 @@ export async function diagnoseCommand(
 
   const lock = await readLockfile(lockfilePath(projectRoot));
   const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
+  const renderers = await loadRenderers(projectRoot);
   const detected: string[] = [];
   for (const r of renderers) {
-    if (await r.detect(projectRoot)) detected.push(r.name);
+    if (await r.detectConfig(projectRoot)) detected.push(r.name);
   }
+
+  // 环境探测：机器上是否真装了 agent（区别于上面的项目配置探测）
+  const configs = await loadAgentConfig(projectRoot);
+  const envResults = await detectAllEnv(configs);
+  const envByAgent = new Map(envResults.map((r) => [r.agent, r]));
 
   // 1. 建档状态
   out.push('建档状态');
@@ -140,11 +148,16 @@ export async function diagnoseCommand(
   }
   out.push('');
 
-  // 4. Agent 配置
-  out.push('Agent 配置');
+  // 4. Agent 探测（配置 + 环境）
+  out.push('Agent 探测（配置 / 环境）');
   for (const r of renderers) {
-    const on = detected.includes(r.name);
-    out.push(`  ${on ? '✓' : '✗'} ${r.name}${on ? '' : '（未检测到配置）'}`);
+    const cfgOn = detected.includes(r.name);
+    const env = envByAgent.get(r.name);
+    const envOn = env?.installed ?? false;
+    const envDetail = env && envOn ? `（${env.signals.join(', ')}）` : '';
+    out.push(
+      `  ${cfgOn || envOn ? '✓' : '✗'} ${r.name}  配置${cfgOn ? '✓' : '✗'}  环境${envOn ? '✓' : '✗'}${envDetail}`,
+    );
   }
   if (assets.length > 0 && detected.length === 0) {
     findings.push({
@@ -152,6 +165,16 @@ export async function diagnoseCommand(
       category: 'agent',
       message: '有资产但未检测到 agent 配置，运行 zai-doctor sync',
     });
+  }
+  // 配置已存在但环境未装：仍可预生成，仅提示
+  for (const r of renderers) {
+    if (detected.includes(r.name) && !(envByAgent.get(r.name)?.installed ?? false)) {
+      findings.push({
+        severity: 'info',
+        category: 'agent',
+        message: `${r.name} 配置已存在但环境未检测到本体（配置仍可预生成）`,
+      });
+    }
   }
   out.push('');
 

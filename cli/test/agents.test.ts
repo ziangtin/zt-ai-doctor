@@ -64,10 +64,10 @@ describe('Codex renderer', () => {
 });
 
 describe('Cline renderer', () => {
-  it('rule -> .clinerules', async () => {
+  it('rule -> .clinerules/<id>.md', async () => {
     await setup();
     await runSync(project, { agent: 'cline', copy: true });
-    expect(await exists(path.join(project, '.clinerules'))).toBe(true);
+    expect(await exists(path.join(project, '.clinerules', 'rule-1.md'))).toBe(true);
   });
 });
 

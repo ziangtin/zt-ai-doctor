@@ -7,6 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** 包内 market：dist/core/paths.js -> ../../market（cli/market），随包发布 */
 const BUNDLED_MARKET = path.resolve(__dirname, '..', '..', 'market');
 
+/** 内置 agent 映射/探测配置：cli/market/agents.json（随包发布） */
+export function bundledAgentsConfigPath(): string {
+  return path.join(BUNDLED_MARKET, 'agents.json');
+}
+
+/** 项目级覆盖配置：.agents/agents.json */
+export function projectAgentsConfigPath(projectRoot: string): string {
+  return path.join(agentsDir(projectRoot), 'agents.json');
+}
+
 /** 项目级 .agents/ 目录 */
 export function agentsDir(projectRoot: string): string {
   return path.join(projectRoot, '.agents');

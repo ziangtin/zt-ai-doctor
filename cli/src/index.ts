@@ -9,6 +9,7 @@ import { listCommand } from './commands/list.js';
 import { infoCommand } from './commands/info.js';
 import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
+import { detectCommand } from './commands/detect.js';
 import { trustCommand } from './commands/trust.js';
 import { prescribeCommand } from './commands/prescribe.js';
 import { removeCommand } from './commands/remove.js';
@@ -81,6 +82,17 @@ program
     handle(() => diagnoseCommand(projectRootOf(opts), opts)),
   );
 
+// 环境探测
+program
+  .command('detect')
+  .description('环境探测：检测机器上实际安装了哪些 agent（PATH / 全局配置目录 / Windows 注册表）')
+  .option('--project <path>', '项目根目录（默认 cwd；用于读项目覆盖配置与落盘报告）')
+  .option('--json', '输出机器可读 JSON')
+  .option('--verbose', '显示命中信号')
+  .action(async (opts: { project?: string; json?: boolean; verbose?: boolean }) =>
+    handle(() => detectCommand(projectRootOf(opts), opts)),
+  );
+
 // 开方
 program
   .command('prescribe')
@@ -98,7 +110,7 @@ program
   .description('下药：抓药 + sync 渲染软链 + placement 报告（不带 ids 则按处方单）')
   .option('--market <path>', '药典路径')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .option('--agent <name>', '同步到指定 agent（claude|cursor）')
+  .option('--agent <name>', '同步到指定 agent，支持逗号多选（如 claude,cursor）')
   .option('--copy', '强制 copy（不用软链）')
   .action(
     async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean }) =>
@@ -119,7 +131,7 @@ program
 program
   .command('remove <id>')
   .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标（override 文件不动）')
-  .option('--agent <name>', '同步到指定 agent')
+  .option('--agent <name>', '同步到指定 agent，支持逗号多选')
   .option('--copy', '强制 copy')
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (id: string, opts: { agent?: string; copy?: boolean; project?: string }) =>
@@ -140,10 +152,11 @@ program
 program
   .command('sync')
   .description('换药：把 .agents/ 渲染成各 agent 配置（软链优先，降级 copy）')
-  .option('--agent <name>', '指定单个 agent（claude|cursor）')
+  .option('--agent <name>', '同步到指定 agent，支持逗号多选（如 claude,cursor）')
   .option('--copy', '强制 copy（不用软链，适合无软链权限的环境）')
+  .option('--installed-only', '仅同步环境探测已安装的 agent（默认关，允许预生成配置）')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (opts: { agent?: string; copy?: boolean; project?: string }) =>
+  .action(async (opts: { agent?: string; copy?: boolean; installedOnly?: boolean; project?: string }) =>
     handle(() => syncCommand(projectRootOf(opts), opts)),
   );
 

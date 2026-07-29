@@ -1,0 +1,174 @@
+{
+  "$comment": "agent 映射 + 探测配置（单一来源）。项目可在 .agents/agents.json 覆盖单 agent 字段或新增 agent。详见 docs/guides/AGENTS_CONFIG.md",
+  "agents": {
+    "claude": {
+      "markers": [".claude", "CLAUDE.md"],
+      "supports": ["rule", "skill", "mcp"],
+      "env": {
+        "executables": ["claude"],
+        "globalDirs": [".claude"],
+        "registryNames": []
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": "CLAUDE.md",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "rule-aggregate-md",
+          "aggregateSource": "README.md"
+        },
+        "skill": {
+          "targetPath": ".claude/skills/{id}/SKILL.md",
+          "aggregate": false,
+          "action": "symlink",
+          "transform": "claude-skill"
+        },
+        "mcp": {
+          "targetPath": ".mcp.json",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "mcp-json"
+        }
+      }
+    },
+    "cursor": {
+      "markers": [".cursor", ".cursorrules"],
+      "supports": ["rule", "mcp"],
+      "env": {
+        "executables": ["cursor"],
+        "globalDirs": [".cursor"],
+        "registryNames": ["Cursor"]
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".cursor/rules/{id}.mdc",
+          "aggregate": false,
+          "action": "symlink",
+          "transform": "rule-mdc"
+        },
+        "mcp": {
+          "targetPath": ".cursor/mcp.json",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "mcp-json"
+        }
+      }
+    },
+    "copilot": {
+      "markers": [".github/copilot-instructions.md", ".vscode/mcp.json"],
+      "supports": ["rule", "mcp"],
+      "env": {
+        "executables": [],
+        "globalDirs": [".vscode/extensions/github.copilot-*"],
+        "registryNames": []
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".github/copilot-instructions.md",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "rule-aggregate-md"
+        },
+        "mcp": {
+          "targetPath": ".vscode/mcp.json",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "mcp-json"
+        }
+      }
+    },
+    "codex": {
+      "markers": ["AGENTS.md"],
+      "supports": ["rule"],
+      "env": {
+        "executables": ["codex"],
+        "globalDirs": [".codex"],
+        "registryNames": []
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": "AGENTS.md",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "rule-aggregate-md"
+        }
+      }
+    },
+    "cline": {
+      "markers": [".clinerules"],
+      "supports": ["rule"],
+      "env": {
+        "executables": [],
+        "globalDirs": [".vscode/extensions/saoudrizwan.claude-dev-*"],
+        "registryNames": []
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".clinerules/{id}.md",
+          "aggregate": false,
+          "action": "symlink",
+          "transform": "rule-md"
+        }
+      }
+    },
+    "windsurf": {
+      "markers": [".windsurfrules"],
+      "supports": ["rule"],
+      "env": {
+        "executables": [],
+        "globalDirs": [".codeium"],
+        "registryNames": ["Windsurf"]
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".windsurfrules",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "rule-aggregate-md"
+        }
+      }
+    },
+    "trae": {
+      "$doc": "ByteDance Trae IDE（VS Code fork）。规则 .trae/rules/<id>.md + frontmatter(alwaysApply/description/globs)；项目级 MCP .trae/mcp.json",
+      "markers": [".trae"],
+      "supports": ["rule", "mcp"],
+      "env": {
+        "executables": ["trae"],
+        "globalDirs": [],
+        "registryNames": ["Trae"]
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".trae/rules/{id}.md",
+          "aggregate": false,
+          "action": "symlink",
+          "transform": "rule-mdc"
+        },
+        "mcp": {
+          "targetPath": ".trae/mcp.json",
+          "aggregate": true,
+          "action": "symlink",
+          "transform": "mcp-json"
+        }
+      }
+    },
+    "lingma": {
+      "$doc": "Alibaba 通义灵码 / Qoder CN IDE（VS Code fork，原 Lingma IDE）。规则 .qoder/rules/<id>.md；MCP 走 IDE 设置 UI（非项目级文件，不自动写）",
+      "markers": [".qoder"],
+      "supports": ["rule"],
+      "env": {
+        "executables": ["qoder", "lingma"],
+        "globalDirs": [".qoder"],
+        "registryNames": ["Qoder", "Lingma"]
+      },
+      "mappings": {
+        "rule": {
+          "targetPath": ".qoder/rules/{id}.md",
+          "aggregate": false,
+          "action": "symlink",
+          "transform": "rule-mdc"
+        }
+      }
+    }
+  }
+}

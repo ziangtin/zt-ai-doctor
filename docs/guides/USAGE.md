@@ -2,7 +2,7 @@
 
 agent-agnostic 的 coding-agent 工程化工具。像医生一样：**建档 -> 诊断 -> 开方 -> 下药 -> 复诊**，对症下药。
 
-面向 Claude / Cursor / Copilot / Codex / Cline / Windsurf，不绑死某一家。
+面向 Claude / Cursor / Copilot / Codex / Cline / Windsurf / Trae / Lingma，不绑死某一家。
 
 ---
 
@@ -69,8 +69,10 @@ zai-doctor --help      # 命令列表
 │   ├── placements.json     # 受管记录（重同步 + GC 用）
 │   ├── sync-report.md      # sync 报告
 │   ├── prescription.md     # 处方单
-│   └── diagnose-report.md  # 诊断报告
+│   ├── diagnose-report.md  # 诊断报告
+│   └── detect-report.md    # 环境探测报告
 ├── README.md        # Claude rules 聚合（gitignored，sync 生成，勿手改）
+├── agents.json      # agent 映射/探测覆盖（可选，覆盖内置 cli/market/agents.json）
 ├── zai.lock.json    # 锁文件（提交：market 版本 + 已装资产 + hash）
 └── .gitignore
 ```
@@ -113,15 +115,21 @@ agents: [claude, cursor, copilot]
 合并规则：**同 id，高优先级层整体替换低优先级层**（`company > personal > baseline`）；同层同 id 按 `priority` 取大。
 
 ### renderer 与 agent 配置目标
-sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）：
+sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）。目标路径 / 聚合 / action 全部由 `cli/market/agents.json` 配置驱动（项目可在 `.agents/agents.json` 覆盖或新增 agent，见 [AGENTS_CONFIG.md](./AGENTS_CONFIG.md)）：
 - Claude：`CLAUDE.md`（聚合）+ `.claude/skills/<id>/SKILL.md` + `.mcp.json`
 - Cursor：`.cursor/rules/<id>.mdc` + `.cursor/mcp.json`
 - Copilot：`.github/copilot-instructions.md` + `.vscode/mcp.json`
 - Codex：`AGENTS.md`
-- Cline：`.clinerules`
+- Cline：`.clinerules/<id>.md`
 - Windsurf：`.windsurfrules`
+- Trae：`.trae/rules/<id>.md` + `.trae/mcp.json`
+- Lingma：`.qoder/rules/<id>.md`（MCP 走 IDE 设置 UI，不自动写）
 
 完整类型覆盖矩阵见 [COVERAGE_MATRIX.md](./COVERAGE_MATRIX.md)。
+
+### 两种 agent 探测
+- **配置探测**：项目里有没有给某 agent 建过配置（看 `markers` 标记文件，如 `.claude`/`CLAUDE.md`）。`sync` 不带 `--agent` 时按此自动选择渲染目标。
+- **环境探测**：机器上是否真装了某 agent（查 PATH / 全局配置目录 / Windows 注册表，见 `detect` 命令）。两者独立--配置可预生成在环境未装时。
 
 ---
 
@@ -135,9 +143,17 @@ zai-doctor init --project ./my-app # 指定项目根
 
 ### ② 诊断 `diagnose`
 ```bash
-zai-doctor diagnose            # 体检：建档/资产健康/药典新鲜度/agent/环境
+zai-doctor diagnose            # 体检：建档/资产健康/药典新鲜度/agent 探测(配置+环境)/环境
 zai-doctor diagnose --strict   # 发现阻塞症状返回非零（CI 用）
 ```
+
+### ②.5 环境探测 `detect`
+```bash
+zai-doctor detect              # 查机器上实际装了哪些 agent（PATH / 全局配置目录 / Windows 注册表）
+zai-doctor detect --verbose    # 显示命中信号
+zai-doctor detect --json       # 机器可读 JSON
+```
+区别于 `diagnose` 的配置探测（项目里有没有建过 agent 配置），`detect` 查的是环境是否真装了 agent 本体。已建档时落盘 `.agents/.build/detect-report.md`。
 
 ### ③ 开方 `prescribe`
 ```bash
@@ -158,9 +174,11 @@ zai-doctor treat                           # 不带 id：按处方单勾选抓�
 
 ### ⑤ 换药 `sync`
 ```bash
-zai-doctor sync                # 渲染到所有检测到的 agent
-zai-doctor sync --agent claude # 指定单个 agent
-zai-doctor sync --copy         # 强制 copy（不用软链，无软链权限环境用）
+zai-doctor sync                       # 渲染到所有配置探测到的 agent
+zai-doctor sync --agent claude        # 指定单个 agent
+zai-doctor sync --agent claude,cursor # 逗号多选
+zai-doctor sync --copy                # 强制 copy（不用软链，无软链权限环境用）
+zai-doctor sync --installed-only      # 仅同步环境探测已安装的 agent（默认关，允许预生成配置）
 ```
 软链优先，权限不足降级 copy（受管，改 canonical 后重跑 sync 会更新）；用户改过的目标文件不覆盖（conflict skip）。
 
@@ -184,12 +202,13 @@ company overlay 不动（手动删 `.agents/company/`）。
 | `init` | 建档：建 `.agents/` + lockfile | `--market`, `--project` |
 | `list` | 列药典资产 + 已装状态 | `--type`, `--tag` |
 | `info <id>` | 看资产详情 + hash 一致性 | `--full`（显示正文） |
-| `diagnose` | 诊断：agent/资产/环境 | `--strict` |
+| `diagnose` | 诊断：agent 探测(配置+环境)/资产/药典 | `--strict` |
+| `detect` | 环境探测：机器实际装了哪些 agent | `--json`, `--verbose` |
 | `prescribe` | 开方：技术栈匹配 + 处方单 | `--tag` |
-| `treat [ids...]` | 下药：装资产 + sync | `--agent`, `--copy` |
+| `treat [ids...]` | 下药：装资产 + sync | `--agent`(多选), `--copy` |
 | `override <id>` | company 覆盖起点 | - |
-| `remove <id>` | 移除资产 + GC | `--agent`, `--copy` |
-| `sync` | 换药：渲染到 agent 配置 | `--agent`, `--copy` |
+| `remove <id>` | 移除资产 + GC | `--agent`(多选), `--copy` |
+| `sync` | 换药：渲染到 agent 配置 | `--agent`(多选), `--copy`, `--installed-only` |
 | `update` | 药典更新：刷新 lockfile | `--source <git-url>`, `--ref` |
 | `trust <id>` | 信任 MCP | - |
 
@@ -266,8 +285,13 @@ zai-doctor sync                # 重跑 sync，agent 配置更新
 
 ### 场景 3：加新 agent
 ```bash
-mkdir .cursor                  # 让 cursor 被 detect
-zai-doctor sync --agent cursor # 渲染到 cursor
+# 方式 A：内置已支持的 agent，直接 sync
+zai-doctor sync --agent cursor          # 渲染到 cursor（支持逗号多选）
+
+# 方式 B：全新 agent，纯配置即可（见 AGENTS_CONFIG.md）
+# 在 .agents/agents.json 加一段 agents.myagent {...}
+zai-doctor sync --agent myagent
+zai-doctor detect                       # 顺带探测它是否真装了
 ```
 
 ### 场景 4：公司规则覆盖
@@ -287,6 +311,8 @@ zai-doctor sync --copy         # 强制 copy，受管可重同步
 ## 8. 配置
 
 - **`ZAI_MARKET_PATH`**：环境变量，指定药典路径（覆盖默认包内 market）
+- **`cli/market/agents.json`**：内置 agent 映射/探测配置（随包发布）
+- **`.agents/agents.json`**：项目级覆盖（深合并覆盖内置；可新增 agent，见 [AGENTS_CONFIG.md](./AGENTS_CONFIG.md)）
 - **`.agents/zai.lock.json`**：锁文件，提交到 git（记录 market 版本 + 已装资产 + 完整 SHA-256）
 - **`.agents/.build/`**：生成物，gitignored
 

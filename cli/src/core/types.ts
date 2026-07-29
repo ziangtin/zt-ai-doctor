@@ -98,6 +98,7 @@ export interface RenderContext {
 export interface AgentRenderer {
   name: string;
   supports: AssetType[];
-  detect: (projectRoot: string) => Promise<boolean>;
+  /** agent 配置探测：项目根下是否存在该 agent 的配置标记（不是机器是否安装，后者见 envDetect） */
+  detectConfig: (projectRoot: string) => Promise<boolean>;
   renderAll: (assets: LoadedAsset[], ctx: RenderContext) => Promise<Placement[]>;
 }
