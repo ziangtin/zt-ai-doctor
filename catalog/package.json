@@ -1,0 +1,19 @@
+{
+  "name": "catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild": "node scripts/build-data.mjs",
+    "build": "astro build",
+    "dev": "node scripts/build-data.mjs && astro dev",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.0.0",
+    "marked": "^14.0.0"
+  },
+  "devDependencies": {
+    "gray-matter": "^4.0.3"
+  }
+}

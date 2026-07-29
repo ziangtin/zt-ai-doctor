@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+import AssetCard from '../components/AssetCard.astro';
+import catalog from '../data/catalog.json';
+
+interface Asset {
+  id: string;
+  type: string;
+  tags?: string[];
+}
+const assets = (catalog as { assets: Asset[] }).assets;
+const types = [...new Set(assets.map((a) => a.type))];
+const tags = [...new Set(assets.flatMap((a) => a.tags ?? []))];
+---
+<Base title="zai-doctor 药典" description="agent-agnostic coding-agent 资产 catalog">
+  <section class="filters">
+    <div class="filter-group">
+      <strong>类型</strong>
+      <button class="filter-btn active" data-filter="type" data-value="">全部</button>
+      {types.map((t) => <button class="filter-btn" data-filter="type" data-value={t}>{t}</button>)}
+    </div>
+    <div class="filter-group">
+      <strong>标签</strong>
+      <button class="filter-btn active" data-filter="tag" data-value="">全部</button>
+      {tags.map((t) => <button class="filter-btn" data-filter="tag" data-value={t}>{t}</button>)}
+    </div>
+  </section>
+  <section class="grid">
+    {assets.map((a) => <AssetCard asset={a} />)}
+  </section>
+  <p class="empty" hidden>无匹配资产</p>
+</Base>
+
+<script>
+  const state = { type: '', tag: '' };
+  const cards = document.querySelectorAll<HTMLElement>('.card');
+  const empty = document.querySelector<HTMLElement>('.empty');
+  document.querySelectorAll<HTMLButtonElement>('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter as 'type' | 'tag';
+      const value = btn.dataset.value ?? '';
+      state[filter] = value;
+      document
+        .querySelectorAll(`.filter-btn[data-filter="${filter}"]`)
+        .forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      let visible = 0;
+      cards.forEach((card) => {
+        const matchType = !state.type || card.dataset.type === state.type;
+        const cardTags = (card.dataset.tags ?? '').split(',');
+        const matchTag = !state.tag || cardTags.includes(state.tag);
+        const show = matchType && matchTag;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      if (empty) empty.hidden = visible !== 0;
+    });
+  });
+</script>

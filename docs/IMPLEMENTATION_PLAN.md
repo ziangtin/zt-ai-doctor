@@ -329,8 +329,8 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] 处方单生成（`.agents/.build/prescription.md`），供 `treat` 读取
 
 ### Phase 6 — catalog 静态站（2–3 天）
-- [ ] build 扫 `market/` -> Astro 站
-- [ ] GitHub Pages 部署
+- [x] build 扫 `market/` -> Astro 站
+- [x] GitHub Pages 部署
 
 ### Phase 7 — 多 agent 扩展（按需）
 - [ ] Copilot / Codex / Cline / Windsurf renderer

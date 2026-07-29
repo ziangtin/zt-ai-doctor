@@ -8,3 +8,7 @@ dist/
 .agents/README.md
 .agents/company/
 # 注：.agents/zai.lock.json 要提交，不忽略
+
+# catalog 站生成物（prebuild/astro 生成）
+catalog/src/data/catalog.json
+catalog/.astro/
