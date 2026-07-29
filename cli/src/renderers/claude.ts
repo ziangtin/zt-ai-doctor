@@ -1,23 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { AgentRenderer, LoadedAsset, Placement } from '../core/types.js';
+import type { AgentRenderer, Placement } from '../core/types.js';
 import { agentsDir } from '../core/paths.js';
-import { aggregateMcp, exists } from './util.js';
+import { aggregateRules, aggregateMcp, exists } from './util.js';
 
-/** rules 聚合成 README：按 priority 降序拼接正文 */
-function aggregateRules(rules: LoadedAsset[]): string {
-  const sorted = [...rules].sort((a, b) => (b.meta.priority ?? 0) - (a.meta.priority ?? 0));
-  const parts = sorted.map((r) => `## ${r.meta.title ?? r.meta.id}\n\n${r.content.trim()}`);
-  return [
-    '# Agent Rules',
-    '',
-    '> 由 zai-doctor sync 生成，勿手改。改 `.agents/rules/*.md` 后重跑 `zai-doctor sync`。',
-    '',
-    parts.join('\n\n---\n\n'),
-    '',
-  ].join('\n');
-}
-
+/** rules 聚合成 README：由 util.aggregateRules 生成 */
 export const claudeRenderer: AgentRenderer = {
   name: 'claude',
   supports: ['rule', 'skill', 'mcp'],

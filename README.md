@@ -31,8 +31,8 @@ agent-agnostic 的个人 coding-agent 工程化工具。像医生一样：**建�
 
 ## Agent 支持
 
-- **已实现**：Claude Code、Cursor
-- **规划中**：Copilot、Codex、Cline、Windsurf
+- **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf
+- 类型覆盖矩阵见 [docs/COVERAGE_MATRIX.md](docs/COVERAGE_MATRIX.md)
 
 ## 仓库结构
 

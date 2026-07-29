@@ -333,8 +333,8 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] GitHub Pages 部署
 
 ### Phase 7 — 多 agent 扩展（按需）
-- [ ] Copilot / Codex / Cline / Windsurf renderer
-- [ ] 覆盖矩阵文档化（哪些类型在哪些 agent 不可达）
+- [x] Copilot / Codex / Cline / Windsurf renderer
+- [x] 覆盖矩阵文档化（哪些类型在哪些 agent 不可达）
 
 ---
 
