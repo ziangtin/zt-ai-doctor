@@ -1,10 +1,12 @@
 {
   "name": "zt-ai-doctor-market",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "zai-doctor 药典：canonical agent-agnostic 资产",
   "assets": [
     { "id": "react-ts", "type": "rule", "path": "rules/react-ts.md" },
     { "id": "frontend-review", "type": "skill", "path": "skills/frontend-review.md" },
-    { "id": "mcp-filesystem", "type": "mcp", "path": "mcp/filesystem.md" }
+    { "id": "mcp-filesystem", "type": "mcp", "path": "mcp/filesystem.md" },
+    { "id": "mcp-codegraph", "type": "mcp", "path": "mcp/codegraph.md" },
+    { "id": "mcp-chrome-devtools", "type": "mcp", "path": "mcp/chrome.md" }
   ]
 }
