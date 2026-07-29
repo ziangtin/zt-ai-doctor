@@ -52,6 +52,11 @@ export function upsertAsset(lock: Lockfile, entry: LockfileEntry): Lockfile {
   return { ...lock, assets };
 }
 
+/** 从 lockfile 移除已装资产记录 */
+export function removeAsset(lock: Lockfile, id: string): Lockfile {
+  return { ...lock, assets: lock.assets.filter((a) => a.id !== id) };
+}
+
 /** 标记信任某 MCP */
 export function trustMcp(lock: Lockfile, id: string): Lockfile {
   const trustedMcp = lock.trustedMcp?.includes(id)

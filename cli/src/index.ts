@@ -11,6 +11,7 @@ import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
 import { trustCommand } from './commands/trust.js';
 import { prescribeCommand } from './commands/prescribe.js';
+import { removeCommand } from './commands/remove.js';
 import { UsageError } from './core/errors.js';
 
 const VERSION = '0.1.0';
@@ -112,6 +113,17 @@ program
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (id: string, opts: { market?: string; project?: string }) =>
     handle(() => overrideCommand(projectRootOf(opts), id, opts)),
+  );
+
+// 移除：删已装资产 + sync 清理
+program
+  .command('remove <id>')
+  .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标（company overlay 不动）')
+  .option('--agent <name>', '同步到指定 agent')
+  .option('--copy', '强制 copy')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (id: string, opts: { agent?: string; copy?: boolean; project?: string }) =>
+    handle(() => removeCommand(projectRootOf(opts), id, opts)),
   );
 
 // 信任 MCP
