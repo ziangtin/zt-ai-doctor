@@ -43,9 +43,14 @@ async function loadDir(
     const full = path.join(subDir, f);
     const raw = await fs.readFile(full, 'utf8');
     const parsed = matter(raw);
+    const data = parsed.data as Record<string, unknown>;
+    // 无 id 且无 type -> 非资产（项目自有 .md），跳过不校验、不报错、不参与 sync
+    if (data.id === undefined && data.type === undefined) {
+      continue;
+    }
     let meta: AssetMeta;
     try {
-      meta = validateAssetMeta(parsed.data);
+      meta = validateAssetMeta(data);
     } catch (e) {
       errors.push(`${path.relative(baseDir, full)}: ${(e as Error).message}`);
       continue;
