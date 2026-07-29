@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { lockfilePath, resolveMarketPath } from '../core/paths.js';
+import { lockfilePath, marketSourceUri, resolveMarketPath } from '../core/paths.js';
 import { loadManifest } from '../core/market.js';
 import { readLockfile, writeLockfile } from '../core/lockfile.js';
 import { hashFileFull } from '../core/hash.js';
@@ -36,7 +36,7 @@ export async function updateCommand(
   } else {
     const manifest = await loadManifest(marketPath);
     const integrity = await hashFileFull(path.join(marketPath, 'manifest.json'));
-    source = { type: 'local', uri: marketPath, ref: '', integrity };
+    source = { type: 'local', uri: marketSourceUri(marketPath), ref: '', integrity };
     lock.market = { name: manifest.name, version: manifest.version };
   }
 

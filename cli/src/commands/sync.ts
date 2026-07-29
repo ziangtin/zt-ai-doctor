@@ -75,7 +75,8 @@ export async function runSync(
   projectRoot: string,
   opts: { agent?: string; copy?: boolean } = {},
 ): Promise<Placement[]> {
-  const assets = await loadProjectAssets(projectRoot);
+  const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
+  for (const e of loadErrors) console.log(`  ⚠ 跳过非法资产: ${e}`);
   if (assets.length === 0) {
     console.log('🔄 [sync] .agents/ 无资产，先 zai-doctor treat <id>');
     return [];

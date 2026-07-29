@@ -4,6 +4,7 @@ import { agentsDir, lockfilePath, resolveMarketPath } from '../core/paths.js';
 import { readLockfile } from '../core/lockfile.js';
 import { loadProjectAssets } from '../core/project.js';
 import { findAssetById } from '../core/market.js';
+import { hashFileFull } from '../core/hash.js';
 import { renderers } from '../renderers/index.js';
 import type { AssetType } from '../core/types.js';
 
@@ -42,7 +43,7 @@ export async function diagnoseCommand(
   const findings: Finding[] = [];
 
   const lock = await readLockfile(lockfilePath(projectRoot));
-  const assets = await loadProjectAssets(projectRoot);
+  const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
   const detected: string[] = [];
   for (const r of renderers) {
     if (await r.detect(projectRoot)) detected.push(r.name);
@@ -59,7 +60,15 @@ export async function diagnoseCommand(
   out.push('');
 
   // 2. 资产健康
-  out.push(`资产健康（.agents/ 共 ${assets.length} 项）`);
+  out.push(`资产健康（.agents/ 共 ${assets.length} 项${loadErrors.length ? `，${loadErrors.length} 项加载失败` : ''}）`);
+  for (const e of loadErrors) {
+    out.push(`  🔴 ${e}`);
+    findings.push({
+      severity: 'block',
+      category: '资产',
+      message: `${e}（资产 .md 需 frontmatter 含 id + type）`,
+    });
+  }
   const lockById = new Map((lock?.assets ?? []).map((a) => [a.id, a]));
   const schemaIssues: string[] = [];
   const tampered: string[] = [];
@@ -101,6 +110,19 @@ export async function diagnoseCommand(
   out.push('药典新鲜度');
   try {
     const marketPath = resolveMarketPath(opts.market);
+    // 药典整体一致性：当前 manifest integrity 与 lockfile 记录对比（跨成员用同一份药典的凭证）
+    if (lock?.source) {
+      const currentIntegrity = await hashFileFull(path.join(marketPath, 'manifest.json'));
+      if (currentIntegrity !== lock.source.integrity) {
+        out.push('  🟡 药典 manifest 与 lockfile 记录不一致（integrity 变化）');
+        findings.push({
+          severity: 'warn',
+          category: '药典',
+          message:
+            '药典 manifest integrity 与 lockfile 不一致（团队可能用了不同药典，或药典已更新，重跑 init/update）',
+        });
+      }
+    }
     const stale: string[] = [];
     for (const le of lock?.assets ?? []) {
       const m = await findAssetById(marketPath, le.id);

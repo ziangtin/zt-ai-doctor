@@ -70,11 +70,11 @@ describe('company overlay 端到端', () => {
     await initCommand(project, { market });
     await treatCommand(project, ['react-ts'], { market, copy: true });
 
-    // 建 company 覆盖起点，覆写为 company 内容
+    // 建覆盖起点（.agents/rules/react-ts.override.md，layer: company），覆写为 company 内容
     await overrideCommand(project, 'react-ts', { market });
-    const companyFile = path.join(project, '.agents', 'company', 'rules', 'react-ts.md');
+    const overrideFile = path.join(project, '.agents', 'rules', 'react-ts.override.md');
     await fs.writeFile(
-      companyFile,
+      overrideFile,
       '---\nid: react-ts\ntype: rule\nlayer: company\n---\n\nCOMPANY BODY\n',
       'utf8',
     );

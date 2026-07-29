@@ -13,7 +13,14 @@ export function agentsDir(projectRoot: string): string {
 }
 
 export function lockfilePath(projectRoot: string): string {
-  return path.join(agentsDir(projectRoot), 'zai.lock.json');
+  return path.join(agentsDir(projectRoot), 'zai-doctor.lock.json');
+}
+
+/** 可移植的药典来源标识（不暴露本地绝对路径，跨成员一致）。
+ *  bundled：随包发布的药典；local：--market / $ZAI_MARKET_PATH / ./market 等本地路径。
+ *  真正的一致性靠 source.integrity，uri 仅作来源提示。 */
+export function marketSourceUri(marketPath: string): string {
+  return path.resolve(marketPath) === BUNDLED_MARKET ? 'bundled' : 'local';
 }
 
 /** 资产类型 -> .agents/ 子目录名 */

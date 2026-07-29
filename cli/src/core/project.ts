@@ -2,33 +2,36 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
-import type { Layer, LoadedAsset, ManifestAssetEntry } from './types.js';
+import type { AssetMeta, LoadedAsset, ManifestAssetEntry } from './types.js';
 import { agentsDir } from './paths.js';
 import { validateAssetMeta } from './schema.js';
 
 /**
- * 扫描项目资产：
- * - .agents/<type>/  -> baseline + personal（layer 取自 frontmatter）
- * - .agents/company/<type>/ -> company 覆盖（layer 强制为 company）
+ * 扫描项目资产：.agents/<type>/*.md，layer 取自 frontmatter（baseline/personal/company）。
+ * 用户覆盖（override）文件 <id>.override.md 也在同一目录，frontmatter 标 layer: company。
  */
-export async function loadProjectAssets(projectRoot: string): Promise<LoadedAsset[]> {
+export interface LoadProjectResult {
+  assets: LoadedAsset[];
+  /** 加载失败的 .md（缺 id/type frontmatter 等），不阻塞扫描 */
+  errors: string[];
+}
+
+export async function loadProjectAssets(projectRoot: string): Promise<LoadProjectResult> {
   const dir = agentsDir(projectRoot);
   const assets: LoadedAsset[] = [];
+  const errors: string[] = [];
 
   for (const sub of ['rules', 'skills', 'mcp', 'prompts']) {
-    await loadDir(path.join(dir, sub), dir, assets);
+    await loadDir(path.join(dir, sub), dir, assets, errors);
   }
-  for (const sub of ['rules', 'skills', 'mcp', 'prompts']) {
-    await loadDir(path.join(dir, 'company', sub), dir, assets, 'company');
-  }
-  return assets;
+  return { assets, errors };
 }
 
 async function loadDir(
   subDir: string,
   baseDir: string,
   assets: LoadedAsset[],
-  forceLayer?: Layer,
+  errors: string[],
 ): Promise<void> {
   let files: string[];
   try {
@@ -40,8 +43,13 @@ async function loadDir(
     const full = path.join(subDir, f);
     const raw = await fs.readFile(full, 'utf8');
     const parsed = matter(raw);
-    const meta = validateAssetMeta(parsed.data);
-    if (forceLayer) meta.layer = forceLayer;
+    let meta: AssetMeta;
+    try {
+      meta = validateAssetMeta(parsed.data);
+    } catch (e) {
+      errors.push(`${path.relative(baseDir, full)}: ${(e as Error).message}`);
+      continue;
+    }
     const hash = createHash('sha256').update(raw).digest('hex');
     const entry: ManifestAssetEntry = {
       id: meta.id,

@@ -39,7 +39,7 @@ async function handle(fn: () => Promise<void>): Promise<void> {
 // 建档
 program
   .command('init')
-  .description('建档：在项目建 .agents/ + 空 zai.lock.json')
+  .description('建档：在项目建 .agents/ + 空 zai-doctor.lock.json')
   .option('--market <path>', '药典路径（默认 $ZAI_MARKET_PATH 或 ./market）')
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (opts: { market?: string; project?: string }) =>
@@ -105,10 +105,10 @@ program
       handle(() => treatCommand(projectRootOf(opts), ids, opts)),
   );
 
-// 覆盖：建 company 覆盖
+// 覆盖：建覆盖起点
 program
   .command('override <id>')
-  .description('覆盖：从药典拷资产到 .agents/company/ 作为 company 覆盖起点（编辑后 sync 按 id 覆盖）')
+  .description('覆盖：从药典拷资产到 .agents/<type>/<id>.override.md 作为覆盖起点（layer: company，sync 按 id 覆盖）')
   .option('--market <path>', '药典路径')
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (id: string, opts: { market?: string; project?: string }) =>
@@ -118,7 +118,7 @@ program
 // 移除：删已装资产 + sync 清理
 program
   .command('remove <id>')
-  .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标（company overlay 不动）')
+  .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标（override 文件不动）')
   .option('--agent <name>', '同步到指定 agent')
   .option('--copy', '强制 copy')
   .option('--project <path>', '项目根目录（默认 cwd）')
