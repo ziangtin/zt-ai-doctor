@@ -12,6 +12,28 @@ agent-agnostic 的个人 coding-agent 工程化工具。像医生一样：**建�
 - **同步转化**：一条命令把 `.agents/` 渲染成各 agent 原生配置（软链优先，降级 copy，受管文件冲突保护）
 - **诊断**：检查项目 agent 配置工程化是否到位，出症状报告
 
+核心机制：一份 canonical 源，`sync` 一次，多 agent 原生配置就位。
+
+```mermaid
+flowchart LR
+    M[("药典 market<br/>rules / skills / mcp")]
+    A[".agents/ canonical 源<br/>agent-agnostic"]
+    R{{"sync 渲染"}}
+    C[CLAUDE.md]
+    CU[".cursor/rules"]
+    CO[".github/copilot-instructions.md"]
+    X["AGENTS.md / .clinerules / .windsurfrules"]
+
+    M -->|treat 安装| A
+    A --> R
+    R --> C
+    R --> CU
+    R --> CO
+    R --> X
+```
+
+详细架构与流程图见 [docs/guides/ARCHITECTURE.md](docs/guides/ARCHITECTURE.md)。
+
 ## 快速开始
 
 ```bash
@@ -25,7 +47,7 @@ pnpm --filter zai-doctor dev -- prescribe     # 开方（编辑 .agents/.build/p
 pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sync）
 ```
 
-完整接入与使用文档见 [docs/USAGE.md](docs/USAGE.md)。
+完整接入与使用文档见 [docs/guides/USAGE.md](docs/guides/USAGE.md)。
 
 ## 命令
 
@@ -48,7 +70,7 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 ## Agent 支持
 
 - **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf
-- 类型覆盖矩阵见 [docs/COVERAGE_MATRIX.md](docs/COVERAGE_MATRIX.md)
+- 类型覆盖矩阵见 [docs/guides/COVERAGE_MATRIX.md](docs/guides/COVERAGE_MATRIX.md)
 
 ## 仓库结构
 
@@ -56,7 +78,7 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 zt-ai-doctor/
 ├── cli/        # zai-doctor CLI（Node + TS）+ market/（canonical 资产，随包发布）
 ├── catalog/    # 静态站（Astro，扫 cli/market 生成）
-└── docs/       # 设计、计划、评审
+└── docs/       # guides（使用）/ design（设计演进）/ changelog（版本日志）
 ```
 
 ## 开发
@@ -79,4 +101,5 @@ pnpm --filter catalog build    # 生成 catalog/dist
 
 线上：<https://ziangtin.github.io/zt-ai-doctor/>（push main 自动部署，需 repo settings: Pages source = GitHub Actions）
 
-设计见 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)，当前方案评审见 [docs/CURRENT_SOLUTION_REVIEW.md](docs/CURRENT_SOLUTION_REVIEW.md)。
+设计见 [docs/design/IMPLEMENTATION_PLAN.md](docs/design/IMPLEMENTATION_PLAN.md)，当前方案评审见 [docs/design/CURRENT_SOLUTION_REVIEW.md](docs/design/CURRENT_SOLUTION_REVIEW.md)。
+架构与流程图见 [docs/guides/ARCHITECTURE.md](docs/guides/ARCHITECTURE.md)。

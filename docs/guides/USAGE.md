@@ -290,4 +290,4 @@ zai-doctor sync --copy         # 强制 copy，受管可重同步
 - **`.agents/zai.lock.json`**：锁文件，提交到 git（记录 market 版本 + 已装资产 + 完整 SHA-256）
 - **`.agents/.build/`**：生成物，gitignored
 
-设计见 [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)，当前方案评审见 [CURRENT_SOLUTION_REVIEW.md](./CURRENT_SOLUTION_REVIEW.md)。
+设计见 [../design/IMPLEMENTATION_PLAN.md](../design/IMPLEMENTATION_PLAN.md)，当前方案评审见 [../design/CURRENT_SOLUTION_REVIEW.md](../design/CURRENT_SOLUTION_REVIEW.md)。

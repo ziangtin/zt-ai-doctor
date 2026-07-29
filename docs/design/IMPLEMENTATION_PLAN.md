@@ -355,4 +355,4 @@ diagnose    复诊：再跑诊断，症状应消除
 2. 优先落地 managed placement state，修复 Windows copy 连续同步，并实现安全垃圾回收。
 3. 增加运行时 schema、路径边界、兼容过滤和稳定退出码。
 4. 建立跨平台端到端测试矩阵，通过后再实现 prescribe。
-5. 以 `docs/CURRENT_SOLUTION_REVIEW.md` 作为本轮改版依据；整改完成后重新评分并更新评审基线。
+5. 以 `docs/design/CURRENT_SOLUTION_REVIEW.md` 作为本轮改版依据；整改完成后重新评分并更新评审基线。

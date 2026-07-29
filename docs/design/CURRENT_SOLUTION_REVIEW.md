@@ -38,7 +38,7 @@
 ### 第四阶段（2026-07-28）：Phase 6/7 + remove
 
 - **Phase 6 catalog**：Astro 静态站，扫 `market/` 生成资产列表 + 详情 + 客户端 type/tag 筛选；GitHub Pages CI（push main 自动部署）。
-- **Phase 7 多 agent**：新增 Copilot / Codex / Cline / Windsurf renderer；`aggregateRules` 抽到 util；覆盖矩阵文档化（`docs/COVERAGE_MATRIX.md`）。skill 全 skip；Codex/Cline/Windsurf mcp skip（全局配置不自动改）。
+- **Phase 7 多 agent**：新增 Copilot / Codex / Cline / Windsurf renderer；`aggregateRules` 抽到 util；覆盖矩阵文档化（`docs/guides/COVERAGE_MATRIX.md`）。skill 全 skip；Codex/Cline/Windsurf mcp skip（全局配置不自动改）。
 - **remove 命令**：`zai-doctor remove <id>` 删 `.agents` 资产 + 从 lockfile 移除 + sync GC 清理受管目标；company overlay 不动。
 - 测试增至 37 个（+4 agent + 3 remove）。
 
