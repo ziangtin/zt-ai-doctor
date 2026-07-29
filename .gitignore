@@ -12,3 +12,6 @@ dist/
 # catalog 站生成物（prebuild/astro 生成）
 catalog/src/data/catalog.json
 catalog/.astro/
+
+# codegraph MCP 索引（工具元数据，不入库）
+.codegraph/
