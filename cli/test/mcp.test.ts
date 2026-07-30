@@ -4,13 +4,11 @@ import { makeTempDir, makeMarket, rmrf, exists, readText, type AssetSpec } from 
 import { initCommand } from '../src/commands/init.js';
 import { treatCommand } from '../src/commands/treat.js';
 import { removeCommand } from '../src/commands/remove.js';
-import { overrideCommand } from '../src/commands/override.js';
 import { trustCommand } from '../src/commands/trust.js';
 import { runSync } from '../src/commands/sync.js';
 import { readMcpJson } from '../src/core/mcpStore.js';
 import { readLockfile, writeLockfile, untrustMcp } from '../src/core/lockfile.js';
 import { lockfilePath } from '../src/core/paths.js';
-import { UsageError } from '../src/core/errors.js';
 
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -98,11 +96,6 @@ describe('MCP 单文件模型', () => {
     expect(await exists(path.join(project, '.mcp.json'))).toBe(false);
     const mcpSkip = placements.find((p) => p.assetIds.includes('mcp-1') && p.action === 'skip');
     expect(mcpSkip?.reason).toMatch(/未信任/);
-  });
-
-  it('override mcp 被拒绝', async () => {
-    await setup();
-    await expect(overrideCommand(project, 'mcp-1', { market })).rejects.toThrow(UsageError);
   });
 
   it('treat 非法 MCP body 抛错', async () => {

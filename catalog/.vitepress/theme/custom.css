@@ -1,0 +1,146 @@
+/* catalog 站自用样式：药典卡片 / 筛选 / 详情。沿用 VitePress 主题变量，适配明暗。 */
+
+:root {
+  --asset-rule: #d2a8ff;
+  --asset-skill: #ffa657;
+  --asset-mcp: #7ee787;
+  --asset-prompt: #79c0ff;
+}
+
+/* 筛选条 */
+.catalog-filters { margin: 1.5rem 0 2rem; }
+.filter-group {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.filter-group strong {
+  color: var(--vp-c-text-3);
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+}
+.filter-btn {
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  border: 1px solid var(--vp-c-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: border-color 0.15s;
+}
+.filter-btn:hover { border-color: var(--vp-c-brand-1); }
+.filter-btn.active {
+  background: var(--vp-c-brand-1);
+  color: var(--vp-c-white);
+  border-color: var(--vp-c-brand-1);
+}
+
+/* 卡片网格 */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.asset-card {
+  display: block;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+.asset-card:hover { border-color: var(--vp-c-brand-1); }
+.asset-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.type-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.type-badge[data-type='rule'] { background: rgba(210, 168, 255, 0.2); color: var(--asset-rule); }
+.type-badge[data-type='skill'] { background: rgba(255, 166, 87, 0.2); color: var(--asset-skill); }
+.type-badge[data-type='mcp'] { background: rgba(126, 231, 135, 0.2); color: var(--asset-mcp); }
+.type-badge[data-type='prompt'] { background: rgba(121, 192, 255, 0.2); color: var(--asset-prompt); }
+.asset-layer { font-size: 0.75rem; color: var(--vp-c-text-3); }
+.asset-card h3 { margin: 0.25rem 0; font-size: 1rem; border-top: 0; padding-top: 0; }
+.asset-card .asset-id { font-size: 0.8rem; color: var(--vp-c-brand-1); }
+.asset-card p { font-size: 0.85rem; color: var(--vp-c-text-3); margin: 0.5rem 0 0; }
+.asset-tags { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.asset-tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 4px;
+  color: var(--vp-c-text-3);
+}
+.catalog-empty { color: var(--vp-c-text-3); text-align: center; padding: 2rem; }
+
+/* 详情页 */
+.asset-back {
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+.asset-detail-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.asset-detail-head h1 { margin: 0; font-size: 1.5rem; border-top: 0; padding-top: 0; }
+.asset-detail-head .asset-id { color: var(--vp-c-brand-1); font-size: 0.9rem; }
+.asset-desc { color: var(--vp-c-text-3); margin-top: 0.5rem; }
+.asset-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+.asset-meta dt { color: var(--vp-c-text-3); }
+.asset-meta dd { margin: 0; word-break: break-all; }
+
+/* 资产正文（预渲染 HTML） */
+.asset-prose { margin-top: 1.5rem; }
+.asset-prose h1,
+.asset-prose h2,
+.asset-prose h3 { color: var(--vp-c-text-1); }
+.asset-prose code {
+  background: var(--vp-c-bg-soft);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.asset-prose ul { padding-left: 1.25rem; }
+.asset-prose a { color: var(--vp-c-brand-1); }
+
+.mcp-body {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.asset-source {
+  display: inline-block;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+}
+.asset-source:hover { text-decoration: underline; }

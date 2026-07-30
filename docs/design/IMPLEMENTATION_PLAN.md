@@ -53,7 +53,6 @@ zt-ai-doctor/
 ├── rules/           # canonical 源：每条规则一个 .md（frontmatter + id）← 在这里改
 ├── skills/          # Claude skill（Claude-only，文档标清）
 ├── mcp/             # MCP 配置资产（JSON body）
-├── company/         # 公司 overlay（gitignored，不进 market）
 ├── README.md        # sync 聚合生成（rules 合并的统一来源/文档，gitignored，勿手改）
 ├── .build/          # sync 生成的 per-agent 产物（gitignored）
 └── zai.lock.json    # 锁定的 market 版本 + 已装资产 + hash（提交）
@@ -99,9 +98,8 @@ tags: [core]
 |---|---|---|---|
 | baseline | `market/` | 是 | 是 |
 | personal（curation） | `market/`（`layer: personal` + 你的筛选/排序） | 是 | 是 |
-| company overlay | `<project>/.agents/company/`（gitignored） | 否 | 否 |
 
-合并规则：**同 id，高优先级层整体替换低优先级层**。优先级 `company > personal > baseline`。同层同 id 冲突按 `priority` 取大者。合并产出 id -> asset 映射，再进 renderer。
+合并规则：**同 id，高优先级层整体替换低优先级层**。优先级 `personal > baseline`。同层同 id 冲突按 `priority` 取大者。合并产出 id -> asset 映射，再进 renderer。项目级定制直接编辑 `.agents/<type>/<id>.md`（`treat` 冲突保护，`--force` 强制覆盖）。
 
 ---
 
@@ -110,7 +108,7 @@ tags: [core]
 ### 4.1 管线
 
 ```
-resolve layers (company > personal > baseline, by id)
+resolve layers (personal > baseline, by id)
         │
         ▼
 merged asset set (id -> asset)
@@ -224,7 +222,6 @@ bin 名 `zai-doctor`（建议 shell alias `zd=zai-doctor`）。整个流程按�
 | `zai-doctor diagnose` | 诊断 | 查 agent 配置有无 + 校验已引入资产 + 环境一致性，出症状报告 | 读 | ✓ |
 | `zai-doctor prescribe` | 开方 | 先诊断再读技术栈 -> 出处方（推荐资产 + 标签筛选），人工挑 | 读 | ✓ |
 | `zai-doctor treat [ids...]` | 下药 | 装处方/指定资产 + sync 渲染软链 + placement 报告 | 写 | ✓ |
-| `zai-doctor override <id>` | 覆盖 | 从药典拷资产到 .agents/company/ 作 company 覆盖起点 | 写 | ✓ |
 | `zai-doctor sync [--agent <name>]` | 换药 | 仅重新渲染软链（不装新资产） | 写 | ✓ |
 | `zai-doctor update` | 药典更新 | 拉 market 最新版本，更新 lockfile | 写 | ✓ |
 | `zai-doctor list` | 查药典 | 列出所有资产 + 已装状态（--type/--tag 筛选） | 读 | ✓ |
@@ -295,7 +292,7 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] `zai-doctor update` 拉 market 新版本（MVP：刷新 lockfile 药典版本）
 
 ### Phase 2 — sync 引擎（3–5 天，核心）
-- [x] 层级合并（先只 baseline，company/personal 留 Phase 3）
+- [x] 层级合并（personal > baseline）
 - [x] Claude renderer（rule 聚合成 `.agents/README.md`、`CLAUDE.md` 软链、skill、`.mcp.json`）
 - [x] Cursor renderer（rule -> `.mdc` + frontmatter、mcp、skill=skip）
 - [x] 软链优先 / copy 降级（Windows 必测）- 验证：开发者模式下 symlink 生效，copy 降级路径已实现
@@ -303,9 +300,9 @@ diagnose    复诊：再跑诊断，症状应消除
 - [x] `treat` 串起 install + sync（含 placement 报告）
 
 ### Phase 3 — 分层覆盖（1–2 天）
-- [x] company overlay（`.agents/company/`，gitignored）+ `override <id>` 命令建覆盖起点
+- [~] ~~company overlay + `override <id>` 命令~~（已移除：`.agents/` 本身即项目级，定制改为直接编辑 `<id>.md` + `treat` 冲突保护）
 - [x] personal 层（market 内 `layer: personal`，与 baseline 共存于 .agents/<type>/）
-- [x] per-rule 替换 by id + priority（resolveAssets：company > personal > baseline）
+- [x] per-rule 替换 by id + priority（resolveAssets：personal > baseline）
 
 ### Phase 4 — diagnose（2 天）
 - [x] 检查各 agent 配置是否存在（renderer.detect）

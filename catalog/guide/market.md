@@ -81,5 +81,5 @@ zai-doctor diagnose                   # 确认版本
 4. 已装用户跑 `diagnose` 会看到版本滞后提示，`treat <id>` 升级
 
 ## 相关
-- 使用说明：[USAGE.md](./USAGE.md)
-- 架构与数据流：[ARCHITECTURE.md](./ARCHITECTURE.md)
+- 使用说明：[使用文档](./usage)
+- 架构与数据流：[架构与流程](./architecture)

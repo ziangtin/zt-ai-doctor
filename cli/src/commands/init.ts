@@ -16,7 +16,7 @@ async function pathExists(p: string): Promise<boolean> {
   }
 }
 
-/** .agents/ 内自带的 gitignore：仅忽略生成物；rules/skills/prompts/mcp.json 与 *.override.md 提交到项目（不发布到工具 market） */
+/** .agents/ 内自带的 gitignore：仅忽略生成物；rules/skills/prompts/mcp.json 提交到项目（不发布到工具 market） */
 const AGENTS_GITIGNORE = `.build/
 `;
 

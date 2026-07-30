@@ -1,5 +1,5 @@
 export type AssetType = 'rule' | 'skill' | 'mcp' | 'prompt';
-export type Layer = 'baseline' | 'personal' | 'company';
+export type Layer = 'baseline' | 'personal';
 
 /** 层级覆盖记录（sync 时同 id 出现在多层） */
 export interface LayerOverride {

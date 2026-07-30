@@ -39,7 +39,7 @@
 
 - **Phase 6 catalog**：Astro 静态站，扫 `market/` 生成资产列表 + 详情 + 客户端 type/tag 筛选；GitHub Pages CI（push main 自动部署）。
 - **Phase 7 多 agent**：新增 Copilot / Codex / Cline / Windsurf renderer；`aggregateRules` 抽到 util；覆盖矩阵文档化（`docs/guides/COVERAGE_MATRIX.md`）。skill 全 skip；Codex/Cline/Windsurf mcp skip（全局配置不自动改）。
-- **remove 命令**：`zai-doctor remove <id>` 删 `.agents` 资产 + 从 lockfile 移除 + sync GC 清理受管目标；company overlay 不动。
+- **remove 命令**：`zai-doctor remove <id>` 删 `.agents` 资产 + 从 lockfile 移除 + sync GC 清理受管目标。
 - 测试增至 37 个（+4 agent + 3 remove）。
 
 ## 1. 评审结论
@@ -59,7 +59,7 @@
 ## 3. 方案优点
 
 1. **canonical source + renderer 的方向正确**：资产源与 agent 原生格式分离，比维护多份配置更容易扩展。
-2. **分层覆盖模型简单清楚**：`company > personal > baseline`，同层按 priority 决策。
+2. **分层覆盖模型简单清楚**：`personal > baseline`，同层按 priority 决策；项目级定制直接编辑 `.agents/<type>/<id>.md`（`treat` 冲突保护：改过的资产 re-treat 跳过，`--force` 强制）。
 3. **有保护用户配置的意识**：现已能区分受管 copy 与用户文件，冲突时显式 skip 不覆盖。
 4. **renderer 边界清晰**：Claude、Cursor 的格式差异被局部封装。
 5. **可观测性方向正确**：sync report、diagnose report、显式 skip、稳定退出码（0/1/2）。

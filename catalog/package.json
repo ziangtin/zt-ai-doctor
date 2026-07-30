@@ -5,15 +5,16 @@
   "type": "module",
   "scripts": {
     "prebuild": "node scripts/build-data.mjs",
-    "build": "astro build",
-    "dev": "node scripts/build-data.mjs && astro dev",
-    "preview": "astro preview"
+    "build": "vitepress build",
+    "dev": "node scripts/build-data.mjs && vitepress dev",
+    "preview": "vitepress preview"
   },
   "dependencies": {
-    "astro": "^5.0.0",
-    "marked": "^14.0.0"
+    "vue": "^3.5.40"
   },
   "devDependencies": {
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "marked": "^14.0.0",
+    "vitepress": "^1.6.4"
   }
 }

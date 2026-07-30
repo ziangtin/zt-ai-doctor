@@ -7,7 +7,7 @@ import { SEMVER_REGEX, maxVersionIndex } from './semver.js';
 /** 安全 id 格式：小写字母数字开头，仅允许 . _ -，禁止路径分隔符 */
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]*$/, 'id 必须匹配 ^[a-z0-9][a-z0-9._-]*$');
 const assetTypeSchema = z.enum(['rule', 'skill', 'mcp', 'prompt']);
-const layerSchema = z.enum(['baseline', 'personal', 'company']);
+const layerSchema = z.enum(['baseline', 'personal']);
 
 const assetMetaSchema = z.object({
   id: idSchema,

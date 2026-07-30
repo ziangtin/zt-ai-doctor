@@ -7,7 +7,6 @@ import { updateCommand } from './commands/update.js';
 import { syncCommand } from './commands/sync.js';
 import { listCommand } from './commands/list.js';
 import { infoCommand } from './commands/info.js';
-import { overrideCommand } from './commands/override.js';
 import { diagnoseCommand } from './commands/diagnose.js';
 import { detectCommand } from './commands/detect.js';
 import { trustCommand } from './commands/trust.js';
@@ -114,25 +113,16 @@ program
   .option('--agent <name>', '同步到指定 agent，支持逗号多选（如 claude,cursor）')
   .option('--copy', '强制 copy（不用软链）')
   .option('--to <version>', '装指定版本（回退到旧版本）')
+  .option('--force', '强制覆盖本地已修改的资产（默认跳过已修改）')
   .action(
-    async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean; to?: string }) =>
+    async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean; to?: string; force?: boolean }) =>
       handle(() => treatCommand(projectRootOf(opts), ids, opts)),
-  );
-
-// 覆盖：建覆盖起点
-program
-  .command('override <id>')
-  .description('覆盖：从药典拷资产到 .agents/<type>/<id>.override.md 作为覆盖起点（layer: company，sync 按 id 覆盖）')
-  .option('--market <path>', '药典路径')
-  .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (id: string, opts: { market?: string; project?: string }) =>
-    handle(() => overrideCommand(projectRootOf(opts), id, opts)),
   );
 
 // 移除：删已装资产 + sync 清理
 program
   .command('remove <id>')
-  .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标（override 文件不动）')
+  .description('移除：删已装资产 + sync 清理 agent 配置中的受管目标')
   .option('--agent <name>', '同步到指定 agent，支持逗号多选')
   .option('--copy', '强制 copy')
   .option('--project <path>', '项目根目录（默认 cwd）')

@@ -32,7 +32,7 @@ flowchart LR
     R --> X
 ```
 
-详细架构与流程图见 [docs/guides/ARCHITECTURE.md](docs/guides/ARCHITECTURE.md)。
+详细架构与流程图见 [catalog/guide/architecture.md](catalog/guide/architecture.md)。
 
 ## 快速开始
 
@@ -47,7 +47,7 @@ pnpm --filter zai-doctor dev -- prescribe     # 开方（编辑 .agents/.build/p
 pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sync）
 ```
 
-完整接入与使用文档见 [docs/guides/USAGE.md](docs/guides/USAGE.md)。
+完整接入与使用文档见 [catalog/guide/usage.md](catalog/guide/usage.md)（或线上文档站 <https://ziangtin.github.io/zt-ai-doctor/>）。
 
 ## 命令
 
@@ -58,9 +58,8 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 | `info <id>` | ✅ | 查资产详情 + 已装状态 + hash 一致性 |
 | `diagnose` | ✅ | 诊断：agent 探测(配置+环境)/资产健康/药典新鲜度，出症状报告（`--strict` 阻塞返回非零） |
 | `detect` | ✅ | 环境探测：机器上实际装了哪些 agent（PATH / 全局目录 / Windows 注册表，`--json`/`--verbose`） |
-| `treat [ids...]` | ✅ | 下药：装资产 + sync 渲染 + placement 报告（不带 id 按处方单抓药，`--agent` 支持多选） |
-| `override <id>` | ✅ | 覆盖：拷资产到 `.agents/<type>/<id>.override.md`（layer: company）作项目级覆盖起点 |
-| `remove <id>` | ✅ | 移除：删已装资产 + sync 清理 agent 配置（override 文件不动） |
+| `treat [ids...]` | ✅ | 下药：装资产 + sync 渲染 + placement 报告（不带 id 按处方单抓药，`--agent` 多选；改过的资产 re-treat 跳过，`--force` 强制） |
+| `remove <id>` | ✅ | 移除：删已装资产 + sync 清理 agent 配置 |
 | `sync` | ✅ | 换药：渲染 `.agents/` 到 agent 配置（`--agent` 多选 / `--copy` / `--installed-only`） |
 | `update` | ✅ | 药典更新：刷新版本 + integrity；`--source <git-url>` 从 git 拉取 |
 | `trust <id>` | ✅ | 信任 MCP：展示 command/args + 未固定版本警告（未信任则 sync 不写 MCP 配置） |
@@ -71,16 +70,16 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 ## Agent 支持
 
 - **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf、Trae、Lingma（通义灵码 / Qoder CN）
-- **配置驱动**：agent 的映射/探测全部由 `cli/market/agents.json` 声明，项目可在 `.agents/agents.json` 覆盖或新增 agent（无需改 TS）。见 [docs/guides/AGENTS_CONFIG.md](docs/guides/AGENTS_CONFIG.md)
-- 类型覆盖矩阵见 [docs/guides/COVERAGE_MATRIX.md](docs/guides/COVERAGE_MATRIX.md)
+- **配置驱动**：agent 的映射/探测全部由 `cli/market/agents.json` 声明，项目可在 `.agents/agents.json` 覆盖或新增 agent（无需改 TS）。见 [catalog/guide/agents-config.md](catalog/guide/agents-config.md)
+- 类型覆盖矩阵见 [catalog/guide/coverage-matrix.md](catalog/guide/coverage-matrix.md)
 
 ## 仓库结构
 
 ```
 zt-ai-doctor/
 ├── cli/        # zai-doctor CLI（Node + TS）+ market/（canonical 资产，随包发布）
-├── catalog/    # 静态站（Astro，扫 cli/market 生成）
-└── docs/       # guides（使用）/ design（设计演进）/ changelog（版本日志）
+├── catalog/    # 文档站（VitePress，基于 Vue）：扫 cli/market 生成药典 + guide/changelog 使用文档
+└── docs/       # design（设计演进）
 ```
 
 ## 开发
@@ -92,9 +91,9 @@ pnpm lint
 pnpm build
 ```
 
-## Catalog 静态站
+## Catalog 文档站
 
-药典资产的可浏览静态站（Astro），扫 `market/` 生成。
+药典资产的可浏览静态站 + 使用文档（VitePress，基于 Vue）：扫 `market/` 生成药典，`guide/`、`changelog/` 为使用文档与版本日志。
 
 ```bash
 pnpm --filter catalog dev      # 本地预览
@@ -104,4 +103,4 @@ pnpm --filter catalog build    # 生成 catalog/dist
 线上：<https://ziangtin.github.io/zt-ai-doctor/>（push main 自动部署，需 repo settings: Pages source = GitHub Actions）
 
 设计见 [docs/design/IMPLEMENTATION_PLAN.md](docs/design/IMPLEMENTATION_PLAN.md)，当前方案评审见 [docs/design/CURRENT_SOLUTION_REVIEW.md](docs/design/CURRENT_SOLUTION_REVIEW.md)。
-架构与流程图见 [docs/guides/ARCHITECTURE.md](docs/guides/ARCHITECTURE.md)。
+架构与流程图见 [catalog/guide/architecture.md](catalog/guide/architecture.md)。

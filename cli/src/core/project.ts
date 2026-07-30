@@ -7,9 +7,9 @@ import { agentsDir } from './paths.js';
 import { validateAssetMeta } from './schema.js';
 
 /**
- * 扫描项目资产：.agents/<type>/*.md，layer 取自 frontmatter（baseline/personal/company）。
+ * 扫描项目资产：.agents/<type>/*.md，layer 取自 frontmatter（baseline/personal）。
  * 注意：MCP 不在此扫描（单文件 .agents/mcp.json，见 mcpStore.loadProjectMcp）。
- * 用户覆盖（override）文件 <id>.override.md 也在同一目录，frontmatter 标 layer: company。
+ * 残留的 <id>.override.md（已移除的 company 覆盖机制）一律跳过，不作为资产。
  */
 export interface LoadProjectResult {
   assets: LoadedAsset[];
@@ -41,6 +41,7 @@ async function loadDir(
     return; // 子目录不存在
   }
   for (const f of files.filter((x) => x.endsWith('.md'))) {
+    if (f.endsWith('.override.md')) continue; // 残留覆盖文件，忽略
     const full = path.join(subDir, f);
     const raw = await fs.readFile(full, 'utf8');
     const parsed = matter(raw);

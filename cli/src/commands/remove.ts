@@ -11,7 +11,6 @@ import { UsageError } from '../core/errors.js';
  * remove <id>：移除已装资产。
  * rule/skill/prompt：删 .agents/<type>/<file>；mcp：从 .agents/mcp.json 删条目。
  * 从 lockfile 移除 + sync（GC 清理 agent 配置中的受管目标）。
- * override 文件不动（用户覆盖，手动删）。
  */
 export async function removeCommand(
   projectRoot: string,

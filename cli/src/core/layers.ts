@@ -1,10 +1,8 @@
 import type { Layer, LayerOverride, LoadedAsset } from './types.js';
 
-/** 层级优先级：company > personal > baseline */
+/** 层级优先级：personal > baseline（market 侧 curation 层） */
 export function layerRank(layer: Layer | undefined): number {
   switch (layer) {
-    case 'company':
-      return 30;
     case 'personal':
       return 20;
     case 'baseline':

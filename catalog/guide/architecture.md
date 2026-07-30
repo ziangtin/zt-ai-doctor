@@ -4,7 +4,7 @@
 >
 > - 图 1–2：**设计视角**（用户流程、数据流）
 > - 图 3–5：**实现视角**（对应源码，反映当前真实行为）
-> - 图 6：**规划中**的未来架构（来自 [PRODUCT_OPTIMIZATION_PLAN.md](../design/PRODUCT_OPTIMIZATION_PLAN.md)，尚未实现）
+> - 图 6：**规划中**的未来架构（来自 [PRODUCT_OPTIMIZATION_PLAN.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/PRODUCT_OPTIMIZATION_PLAN.md)，尚未实现）
 
 ## 图例
 
@@ -40,19 +40,17 @@ flowchart TD
 
 ## 2. 数据流（设计 · 数据视角）
 
-药典（`market`）经 `treat` 拷贝成项目内 canonical 源（`.agents/<type>/`，MCP 为单文件 `.agents/mcp.json`），再经 `sync` 渲染成构建产物（`.build/<agent>/`），最后以 symlink/copy 落到各 agent 原生配置。company overlay 按 id 覆盖 canonical，lockfile 记录并校验已装资产（含装时 version，`diagnose` 据此检测版本滞后，`treat --to` 回退；药典 manifest 支持多版本，见 [MARKET.md](./MARKET.md)）。
+药典（`market`）经 `treat` 拷贝成项目内 canonical 源（`.agents/<type>/`，MCP 为单文件 `.agents/mcp.json`），再经 `sync` 渲染成构建产物（`.build/<agent>/`），最后以 symlink/copy 落到各 agent 原生配置。项目级定制直接编辑 `.agents/<type>/<id>.md`（`treat` 冲突保护：改过的资产 re-treat 跳过，`--force` 强制），lockfile 记录并校验已装资产（含装时 version，`diagnose` 据此检测版本滞后，`treat --to` 回退；药典 manifest 支持多版本，见 [药典多版本](./market)）。
 
 ```mermaid
 flowchart LR
     M[("market 药典<br/>cli/market")]
-    CO[".agents/<type>/<id>.override.md<br/>layer:company（提交到项目）"]
-    A[".agents/&lt;type&gt;/ + mcp.json<br/>canonical 源"]
+    A[".agents/&lt;type&gt;/ + mcp.json<br/>canonical 源（可直接编辑做项目定制）"]
     B[".build/&lt;agent&gt;/<br/>构建产物 (gitignored)"]
     T["agent 配置<br/>.claude/rules / .cursor / .mcp.json ..."]
     L[("zai-doctor.lock.json<br/>已装资产 + hash + version")]
 
     M -- "treat 拷贝" --> A
-    CO -. "同 id 覆盖" .-> A
     A -- "sync 渲染" --> B
     B -- "symlink / copy" --> T
     L -. "记录/校验" .-> A
@@ -62,11 +60,11 @@ flowchart LR
 
 ## 3. sync 引擎实现流程（实现 · 核心）
 
-对应 [sync.ts](../cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。renderer 由 `cli/market/agents.json` 配置驱动（`loadRenderers`），项目可 `.agents/agents.json` 覆盖。
+对应 [sync.ts](https://github.com/ziangtin/zt-ai-doctor/blob/main/cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。renderer 由 `cli/market/agents.json` 配置驱动（`loadRenderers`），项目可 `.agents/agents.json` 覆盖。
 
 ```mermaid
 flowchart TD
-    S0["loadProjectAssets<br/>读 .agents/ 各层资产"] --> S1["resolveAssets<br/>分层合并 company&gt;personal&gt;baseline<br/>同层 priority 取大"]
+    S0["loadProjectAssets<br/>读 .agents/ 各层资产"] --> S1["resolveAssets<br/>分层合并 personal&gt;baseline<br/>同层 priority 取大"]
     S1 --> S2["loadRenderers（读 agents.json）<br/>detectConfig 配置探测 或 --agent 多选<br/>--installed-only 按环境过滤<br/>未知 agent -> exit 2"]
     S2 --> S3["applicableAssets 过滤<br/>supports + meta.agents + MCP 信任<br/>不兼容 -> skip"]
     S3 --> S4["renderAll（transforms.ts 转换）<br/>生成构建产物 + Placement"]
@@ -81,7 +79,7 @@ flowchart TD
 
 ## 4. place 放置决策（实现 · 细节）
 
-对应 [place.ts](../cli/src/core/place.ts) 的 `place()`。这是 Windows copy 降级后仍可重同步、以及保护用户修改的关键决策树：受管 symlink 直接替换；内容一致 no-op；受管 copy 源更新可覆盖；用户改过或未知文件则冲突 skip，绝不自动覆盖。
+对应 [place.ts](https://github.com/ziangtin/zt-ai-doctor/blob/main/cli/src/core/place.ts) 的 `place()`。这是 Windows copy 降级后仍可重同步、以及保护用户修改的关键决策树：受管 symlink 直接替换；内容一致 no-op；受管 copy 源更新可覆盖；用户改过或未知文件则冲突 skip，绝不自动覆盖。
 
 ```mermaid
 flowchart TD
@@ -106,16 +104,16 @@ flowchart TD
 
 ## 5. 分层合并决策（实现 · 细节）
 
-对应 [layers.ts](../cli/src/core/layers.ts) 的 `resolveAssets`。同 id 资产按层 `company(30) > personal(20) > baseline(10)` 取高；同层按 `priority`（默认 0）取大；多于一个则记录 override，落进 sync 报告。
+对应 [layers.ts](https://github.com/ziangtin/zt-ai-doctor/blob/main/cli/src/core/layers.ts) 的 `resolveAssets`。同 id 资产按层 `personal(20) > baseline(10)` 取高；同层按 `priority`（默认 0）取大；多于一个则记录 override，落进 sync 报告。
 
 ```mermaid
 flowchart TD
-    L0["载入所有层资产<br/>baseline + personal + company"] --> L1["按 id 分组"]
+    L0["载入所有层资产<br/>baseline + personal"] --> L1["按 id 分组"]
     L1 --> L2{"同 id 数量"}
     L2 -- "1" --> L3["直接进 resolved"]
     L2 -- "多个" --> L4["逐对比较"]
     L4 --> L5{"层级 rank"}
-    L5 -- "company=30 &gt; personal=20 &gt; baseline=10" --> L6["取层级高者"]
+    L5 -- "personal=20 &gt; baseline=10" --> L6["取层级高者"]
     L5 -- "同层级" --> L7{"priority 取大<br/>默认 0"}
     L6 --> L8["winner 进 resolved"]
     L7 --> L8
@@ -126,7 +124,7 @@ flowchart TD
 
 ## 6. 未来 sync 四阶段（规划中）
 
-> ⚠️ 尚未实现，来自 [PRODUCT_OPTIMIZATION_PLAN.md](../design/PRODUCT_OPTIMIZATION_PLAN.md) §5.3 / §2.2。
+> ⚠️ 尚未实现，来自 [PRODUCT_OPTIMIZATION_PLAN.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/PRODUCT_OPTIMIZATION_PLAN.md) §5.3 / §2.2。
 
 规划中的 sync 收敛为 `discover -> plan -> preview -> apply` 四阶段，并引入转换 fidelity 三级：`exact` 正常生成、`degraded` 有损需确认、`unsupported` 拒绝生成不静默降级；写操作走 journal + 备份，可 rollback。
 
@@ -145,4 +143,4 @@ flowchart TD
 
 ---
 
-设计见 [../design/IMPLEMENTATION_PLAN.md](../design/IMPLEMENTATION_PLAN.md)，使用说明见 [USAGE.md](./USAGE.md)，当前方案评审见 [../design/CURRENT_SOLUTION_REVIEW.md](../design/CURRENT_SOLUTION_REVIEW.md)。
+设计见 [IMPLEMENTATION_PLAN.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/IMPLEMENTATION_PLAN.md)，使用说明见 [使用文档](./usage)，当前方案评审见 [CURRENT_SOLUTION_REVIEW.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/CURRENT_SOLUTION_REVIEW.md)。

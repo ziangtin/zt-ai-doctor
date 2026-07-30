@@ -6,12 +6,12 @@ dist/
 # zai-doctor 自用（dogfood）时生成的产物
 .agents/.build/
 .agents/README.md
-.agents/company/
 # 注：.agents/zai.lock.json 要提交，不忽略
 
-# catalog 站生成物（prebuild/astro 生成）
+# catalog 站生成物（build-data 生成 + VitePress 构建产物/缓存）
 catalog/src/data/catalog.json
-catalog/.astro/
+catalog/.vitepress/dist/
+catalog/.vitepress/cache/
 
 # codegraph MCP 索引（工具元数据，不入库）
 .codegraph/

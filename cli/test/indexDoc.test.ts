@@ -174,7 +174,7 @@ describe('索引 README 生成', () => {
     await treatCommand(project, ['react-ts'], { market, copy: true });
 
     const dir = path.join(project, '.agents', 'rules');
-    // override 文件（同 id 覆盖，不应单列）
+    // 残留 override 文件（机制已移除，应被忽略，不作为资产也不进索引）
     await fs.writeFile(
       path.join(dir, 'react-ts.override.md'),
       '---\nid: react-ts\ntype: rule\nlayer: company\n---\nCOMPANY\n',
@@ -189,10 +189,10 @@ describe('索引 README 生成', () => {
     expect(out).not.toContain('override.md');
     expect(out).not.toContain('NOTES.md');
 
-    // 扫描器不报错；README/NOTES 无 id 不入资产；override 同 id 入资产（分层合并用）
+    // 扫描器不报错；README/NOTES 无 id 不入资产；残留 override 文件被忽略（不计入资产）
     const { assets, errors } = await loadProjectAssets(project);
     expect(errors).toHaveLength(0);
-    expect(assets.map((a) => a.meta.id).sort()).toEqual(['react-ts', 'react-ts']);
+    expect(assets.map((a) => a.meta.id).sort()).toEqual(['react-ts']);
   });
 
   it('按 priority 降序排序', async () => {

@@ -59,7 +59,7 @@ zai-doctor --help      # 命令列表
 项目内 `.agents/` 存 agent-agnostic 的 canonical 资产：
 ```
 .agents/
-├── rules/           # 规则资产（.md：frontmatter + 正文）← 在这里改；本地覆盖用 <id>.override.md
+├── rules/           # 规则资产（.md：frontmatter + 正文）← 在这里改就是项目级定制
 │   └── README.md    # 规范模块索引（自动生成，见「目录索引 README」）
 ├── skills/          # skill 资产（Claude 专用）
 │   └── README.md    # 技能模块索引（自动生成，见「目录索引 README」）
@@ -86,7 +86,7 @@ title: React + TypeScript 规则
 description: 约束 React/TS 代码风格
 tags: [react, ts, frontend]     # catalog 筛选 + prescribe 推荐
 agents: [claude, cursor]        # 可渲染的 agent；缺省=全部
-layer: baseline                 # baseline | personal | company
+layer: baseline                 # baseline | personal
 priority: 100                   # 同 id 同层内排序，大者胜
 version: 1.0.0                  # 资产版本（semver），滞后检测与回退用；缺省 0.0.0
 stack:                          # prescribe 技术栈匹配信号
@@ -111,14 +111,13 @@ agents: [claude, cursor, copilot]
 |---|---|---|---|
 | baseline | `cli/market/` | 是 | 默认资产 |
 | personal | `cli/market/`（`layer: personal`） | 是 | 个人 curation |
-| company | `.agents/<type>/<id>.override.md`（`layer: company`，提交到项目） | 否 | 项目级覆盖（`override <id>` 建起点） |
 
-> company 层是**项目级覆盖**：用 `zai-doctor override <id>` 从药典拷一个 `.override.md` 到对应类型目录（frontmatter 标 `layer: company`），提交到项目 git，sync 时按 id 覆盖 baseline。**工具 market 的发布只在工具包 `cli/market/` 进行**，项目里的 override 不会发布到工具 market。
+合并规则：**同 id，高优先级层整体替换低优先级层**（`personal > baseline`）；同层同 id 按 `priority` 取大。
 
-合并规则：**同 id，高优先级层整体替换低优先级层**（`company > personal > baseline`）；同层同 id 按 `priority` 取大。
+> **项目级定制**：`.agents/` 本身就是项目级，直接编辑 `.agents/<type>/<id>.md` 即可，无需额外覆盖层。`treat` 有冲突保护--若你改过的资产（hash 与 lockfile 记录不一致）被 re-treat，会跳过覆盖并提示，`--force` 强制覆盖。**工具 market 的发布只在工具包 `cli/market/` 进行**，项目里的定制不会发布到工具 market。
 
 ### renderer 与 agent 配置目标
-sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）。目标路径 / 聚合 / action 全部由 `cli/market/agents.json` 配置驱动（项目可在 `.agents/agents.json` 覆盖或新增 agent，见 [AGENTS_CONFIG.md](./AGENTS_CONFIG.md)）：
+sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）。目标路径 / 聚合 / action 全部由 `cli/market/agents.json` 配置驱动（项目可在 `.agents/agents.json` 覆盖或新增 agent，见 [agents.json 配置](./agents-config)）：
 - Claude：`.claude/rules/<id>.md` + `.claude/skills/<id>/SKILL.md` + `.mcp.json`
 - Cursor：`.cursor/rules/<id>.mdc` + `.cursor/mcp.json`
 - Copilot：`.github/copilot-instructions.md` + `.vscode/mcp.json`
@@ -128,7 +127,7 @@ sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级
 - Trae：`.trae/rules/<id>.md` + `.trae/mcp.json`
 - Lingma：`.qoder/rules/<id>.md`（MCP 走 IDE 设置 UI，不自动写）
 
-完整类型覆盖矩阵见 [COVERAGE_MATRIX.md](./COVERAGE_MATRIX.md)。
+完整类型覆盖矩阵见 [Agent 覆盖矩阵](./coverage-matrix)。
 
 ### 两种 agent 探测
 - **配置探测**：项目里有没有给某 agent 建过配置（看 `markers` 标记文件，如 `.claude`/`CLAUDE.md`）。`sync` 不带 `--agent` 时按此自动选择渲染目标。
@@ -175,7 +174,7 @@ zai-doctor treat                           # 不带 id：按处方单勾选抓�
 zai-doctor treat react-ts --to 1.0.0       # 装指定版本（回退到旧版本）
 ```
 从药典拷资产到 `.agents/<type>/`，更新 lockfile（含装时 version），sync 渲染到 agent 配置。
-不带 `--to` 装最新版本；`--to <ver>` 装指定版本，可用于**回退**（装新版后 `treat <id> --to <旧版>` 覆盖）。多版本结构见 [MARKET.md](./MARKET.md)。
+不带 `--to` 装最新版本；`--to <ver>` 装指定版本，可用于**回退**（装新版后 `treat <id> --to <旧版>` 覆盖）。多版本结构见 [药典多版本](./market)。
 > `treat` 后自动刷新 `.agents/rules/README.md`、`.agents/skills/README.md` 模块索引（见 [目录索引 README](#目录索引-readme)）。
 
 ### ⑤ 换药 `sync`
@@ -200,7 +199,6 @@ zai-doctor diagnose  # 再跑诊断，症状应消除
 ```bash
 zai-doctor remove react-ts  # 删 .agents 资产 + lockfile + sync GC 清理 agent 配置
 ```
-company override 文件不动（手动删 `.agents/<type>/<id>.override.md`）。
 > `remove` 后同步刷新目录索引 README。
 
 ### ⑧ 清除某 agent 配置 `purge`
@@ -222,8 +220,7 @@ zai-doctor purge claude   # 删 claude 的全部 sync 产物（.claude/rules/、
 | `diagnose` | 诊断：agent 探测(配置+环境)/资产/药典 | `--strict` |
 | `detect` | 环境探测：机器实际装了哪些 agent | `--json`, `--verbose` |
 | `prescribe` | 开方：技术栈匹配 + 处方单 | `--tag` |
-| `treat [ids...]` | 下药：装资产 + sync | `--agent`(多选), `--copy`, `--to <ver>` |
-| `override <id>` | company 覆盖起点 | - |
+| `treat [ids...]` | 下药：装资产 + sync | `--agent`(多选), `--copy`, `--to <ver>`, `--force` |
 | `remove <id>` | 移除资产 + GC | `--agent`(多选), `--copy` |
 | `purge <agent>` | 清除某 agent 的全部 sync 产物（保留资产与其他 agent） | `--project` |
 | `sync` | 换药：渲染到 agent 配置 | `--agent`(多选), `--copy`, `--installed-only`, `--no-gitignore` |
@@ -245,14 +242,16 @@ zai-doctor purge claude   # 删 claude 的全部 sync 产物（.claude/rules/、
 2. 在 `cli/market/manifest.json` 加索引：`{ "id": "...", "type": "...", "versions": [{ "version": "1.0.0", "path": "<type>/<file>.md" }] }`
 3. 验证：`zai-doctor list`
 
-> 多版本结构（同 id 多版本 + 回退）见 [MARKET.md](./MARKET.md)。manifest 也兼容旧单 path 格式（`{ "id", "type", "path" }`）。
+> 多版本结构（同 id 多版本 + 回退）见 [药典多版本](./market)。manifest 也兼容旧单 path 格式（`{ "id", "type", "path" }`）。
 
-### company override
+### 项目级定制
+`.agents/` 是项目级，直接编辑 `.agents/<type>/<id>.md`（公司/项目专属规则，提交到项目 git）即可，`sync` 会用你编辑后的内容渲染：
 ```bash
-zai-doctor override react-ts   # 从药典拷到 .agents/rules/react-ts.override.md（layer: company）
-# 编辑该 override 副本（公司/项目专属规则，提交到项目 git）
-zai-doctor sync                # company 覆盖 baseline（同 id）
+zai-doctor treat react-ts        # 先从药典装一份基底
+# 直接编辑 .agents/rules/react-ts.md（项目规则，提交到项目 git）
+zai-doctor sync                  # 用编辑后的内容渲染到 agent 配置
 ```
+re-treat 同一资产时，若你改过（hash 与 lockfile 不一致），`treat` 会跳过覆盖并提示，避免抹掉定制；确需覆盖加 `--force`。
 
 ### 目录索引 README
 `.agents/rules/README.md` 与 `.agents/skills/README.md` 是自动生成的模块索引，`init`/`treat`/`remove` 后刷新：
@@ -325,11 +324,12 @@ zai-doctor sync --agent myagent
 zai-doctor detect                       # 顺带探测它是否真装了
 ```
 
-### 场景 4：公司规则覆盖
+### 场景 4：项目级定制规则
 ```bash
-zai-doctor override react-ts   # 建 company 覆盖起点（.agents/rules/react-ts.override.md）
-# 编辑该 override 文件（公司/项目规则，提交到项目 git）
-zai-doctor sync                # company 胜出，.claude/rules/cursor 用公司规则
+zai-doctor treat react-ts        # 装基底
+# 直接编辑 .agents/rules/react-ts.md（公司/项目规则，提交到项目 git）
+zai-doctor sync                  # 用编辑后的内容渲染到 .claude/rules/ 等
+# 后续 re-treat react-ts 不会覆盖你的修改（除非 --force）
 ```
 
 ### 场景 5：Windows 无软链权限
@@ -343,8 +343,8 @@ zai-doctor sync --copy         # 强制 copy，受管可重同步
 
 - **`ZAI_MARKET_PATH`**：环境变量，指定药典路径（覆盖默认包内 market）
 - **`cli/market/agents.json`**：内置 agent 映射/探测配置（随包发布）
-- **`.agents/agents.json`**：项目级覆盖（深合并覆盖内置；可新增 agent，见 [AGENTS_CONFIG.md](./AGENTS_CONFIG.md)）
+- **`.agents/agents.json`**：项目级覆盖（深合并覆盖内置；可新增 agent，见 [agents.json 配置](./agents-config)）
 - **`.agents/zai-doctor.lock.json`**：锁文件，提交到 git（记录 market 版本 + 已装资产 + 完整 SHA-256 + 装时 version）
 - **`.agents/.build/`**：生成物，gitignored
 
-设计见 [../design/IMPLEMENTATION_PLAN.md](../design/IMPLEMENTATION_PLAN.md)，当前方案评审见 [../design/CURRENT_SOLUTION_REVIEW.md](../design/CURRENT_SOLUTION_REVIEW.md)。
+设计见 [IMPLEMENTATION_PLAN.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/IMPLEMENTATION_PLAN.md)，当前方案评审见 [CURRENT_SOLUTION_REVIEW.md](https://github.com/ziangtin/zt-ai-doctor/blob/main/docs/design/CURRENT_SOLUTION_REVIEW.md)。

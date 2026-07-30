@@ -7,6 +7,7 @@ import { upsertMcpServer } from '../core/mcpStore.js';
 import { validateMcpBody } from '../core/schema.js';
 import { runSync } from './sync.js';
 import { writeAllIndexes } from '../core/indexDoc.js';
+import { hashFileFull } from '../core/hash.js';
 import { UsageError } from '../core/errors.js';
 import { readPrescriptionSelection } from '../core/prescription.js';
 
@@ -19,7 +20,7 @@ import { readPrescriptionSelection } from '../core/prescription.js';
 export async function treatCommand(
   projectRoot: string,
   ids: string[],
-  opts: { market?: string; agent?: string; copy?: boolean; to?: string },
+  opts: { market?: string; agent?: string; copy?: boolean; to?: string; force?: boolean },
 ): Promise<void> {
   let toInstall = ids;
   if (toInstall.length === 0) {
@@ -88,6 +89,16 @@ export async function treatCommand(
     const targetDir = path.join(agentsDir(projectRoot), assetSubdir(meta.type));
     const targetFile = path.join(targetDir, `${meta.id}.md`);
     await fs.mkdir(targetDir, { recursive: true });
+
+    // 冲突保护：已存在的 <id>.md 若被本地改过（hash ≠ lockfile 装时记录），跳过覆盖；--force 强制
+    if (!opts.force) {
+      const installed = lock.assets.find((a) => a.id === id);
+      const existingHash = await hashFileFull(targetFile).catch(() => null);
+      if (installed && existingHash && existingHash !== installed.hash) {
+        lines.push(`⚠ ${id}${opts.to ? `@${opts.to}` : ''}  本地已修改，跳过覆盖（--force 强制）`);
+        continue;
+      }
+    }
     await fs.writeFile(targetFile, raw, 'utf8');
     lock = upsertAsset(lock, {
       id,

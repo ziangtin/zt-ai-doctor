@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 export type AssetType = 'rule' | 'skill' | 'mcp' | 'prompt';
-export type Layer = 'baseline' | 'personal' | 'company';
+export type Layer = 'baseline' | 'personal';
 
 export interface AssetSpec {
   id: string;

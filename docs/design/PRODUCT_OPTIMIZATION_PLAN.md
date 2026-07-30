@@ -293,7 +293,7 @@ discover -> plan -> preview -> apply
 ### Phase 0：纠偏和稳定基线，1 周
 
 - 修复删除最后一个资产不执行 GC。
-- 完成旧 `.agents/company/` 到 override 的兼容迁移。
+- 移除 company 层 + `override` 命令（`.agents/` 本身即项目级，定制改为直接编辑 `<id>.md` + `treat` 冲突保护，`--force` 强制覆盖）。
 - 修复损坏 lockfile 被 `init` 静默重置。
 - 修复 git source `--ref` 缓存行为。
 - 更新全部过期文档，由测试校验关键路径和命令名称。

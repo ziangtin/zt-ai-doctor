@@ -36,7 +36,7 @@ jobs:
           BASE_PATH: /zt-ai-doctor/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: catalog/dist
+          path: catalog/.vitepress/dist
 
   deploy:
     needs: build
