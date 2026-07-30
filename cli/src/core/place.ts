@@ -25,15 +25,20 @@ export interface PlaceResult {
  * - 目标是普通文件，hash == 即将放置的内容 hash -> 已是最新，no-op
  * - 目标是普通文件，hash == 上次 manifest 记录的 hash -> 我们的受管 copy，源已更新，可覆盖
  * - 否则（用户改过 / 未知文件）-> 冲突，skip
+ *
+ * record.sourcePath 存相对 projectRoot 的相对路径（不泄漏本地绝对路径；
+ * 源恒在 .agents/ 下，故 relative 不会越界）。内部 hash/copy/symlink 仍用 p.sourcePath 绝对路径。
  */
 export async function place(
   p: Placement,
-  prev?: PlacementRecord,
-  forceCopy = false,
+  prev: PlacementRecord | undefined,
+  forceCopy: boolean,
+  projectRoot: string,
 ): Promise<PlaceResult> {
   if (p.action === 'skip') return { placement: p, record: null };
   await fs.mkdir(path.dirname(p.targetPath), { recursive: true });
   const sourceHash = await hashFile(p.sourcePath);
+  const sourceRel = path.relative(projectRoot, p.sourcePath);
 
   if (await exists(p.targetPath)) {
     const stat = await fs.lstat(p.targetPath);
@@ -48,7 +53,7 @@ export async function place(
           targetPath: p.targetPath,
           agent: p.agent,
           action,
-          sourcePath: p.sourcePath,
+          sourcePath: sourceRel,
           hash: sourceHash,
           assetIds: p.assetIds,
         };
@@ -86,7 +91,7 @@ export async function place(
     targetPath: p.targetPath,
     agent: p.agent,
     action,
-    sourcePath: p.sourcePath,
+    sourcePath: sourceRel,
     hash: sourceHash,
     assetIds: p.assetIds,
   };

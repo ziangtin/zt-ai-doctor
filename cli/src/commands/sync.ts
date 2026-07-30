@@ -168,7 +168,7 @@ export async function runSync(
       }
       assertWithinBase(projectRoot, p.targetPath, `${r.name} target`);
       const prev = prevManifest.get(p.targetPath);
-      const { placement, record } = await place(p, prev, opts.copy);
+      const { placement, record } = await place(p, prev, opts.copy ?? false, projectRoot);
       all.push(placement);
       if (record) newRecords.push(record);
     }

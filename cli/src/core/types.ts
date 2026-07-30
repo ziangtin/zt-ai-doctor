@@ -99,6 +99,7 @@ export interface PlacementRecord {
   targetPath: string;
   agent: string;
   action: 'symlink' | 'copy';
+  /** 相对 projectRoot 的相对路径（不泄漏本地绝对路径）；运行期绝对路径见 Placement.sourcePath */
   sourcePath: string;
   hash: string;
   assetIds: string[];
