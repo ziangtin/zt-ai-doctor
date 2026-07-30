@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, lockfilePath } from '../core/paths.js';
-import { collectIgnoreEntries, updateGitignore } from '../core/gitignore.js';
+import { syncGitignore } from '../core/gitignore.js';
 import { loadProjectAssets } from '../core/project.js';
 import { loadProjectMcp } from '../core/mcpStore.js';
 import { readLockfile } from '../core/lockfile.js';
@@ -211,13 +211,7 @@ export async function runSync(
     const recordAgents = new Set<string>();
     for (const r of [...keptPrev, ...newRecords]) recordAgents.add(r.agent);
     const configs = await loadAgentConfig(projectRoot);
-    const mappings: { targetPath: string }[] = [];
-    for (const c of configs) {
-      if (!recordAgents.has(c.name)) continue;
-      for (const m of Object.values(c.mappings)) mappings.push(m);
-    }
-    const entries = collectIgnoreEntries(mappings);
-    await updateGitignore(projectRoot, entries);
+    const entries = await syncGitignore(projectRoot, recordAgents, configs);
     console.log(
       entries.length
         ? `   .gitignore：受管产物段已更新（${entries.length} 项）`

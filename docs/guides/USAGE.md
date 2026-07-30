@@ -203,6 +203,13 @@ zai-doctor remove react-ts  # 删 .agents 资产 + lockfile + sync GC 清理 age
 company override 文件不动（手动删 `.agents/<type>/<id>.override.md`）。
 > `remove` 后同步刷新目录索引 README。
 
+### ⑧ 清除某 agent 配置 `purge`
+```bash
+zai-doctor purge claude   # 删 claude 的全部 sync 产物（.claude/rules/、.mcp.json 等）
+```
+按 placement manifest 清除**单个 agent** 的全部受管配置（sync 渲染产物），不动 `.agents/` 源资产、lockfile 与其他 agent。用户改过的受管文件视为冲突、留盘不覆盖（手动删后重跑 `purge` 即可）。从 manifest 移除该 agent 记录，并刷新 `.gitignore` 受管段。
+> 与 `remove <id>` 的区别：`remove` 按**资产**删（跨所有 agent），`purge` 按 **agent** 删（只清该 agent 的渲染产物，资产保留）。
+
 ---
 
 ## 4. 命令详解
@@ -218,6 +225,7 @@ company override 文件不动（手动删 `.agents/<type>/<id>.override.md`）�
 | `treat [ids...]` | 下药：装资产 + sync | `--agent`(多选), `--copy`, `--to <ver>` |
 | `override <id>` | company 覆盖起点 | - |
 | `remove <id>` | 移除资产 + GC | `--agent`(多选), `--copy` |
+| `purge <agent>` | 清除某 agent 的全部 sync 产物（保留资产与其他 agent） | `--project` |
 | `sync` | 换药：渲染到 agent 配置 | `--agent`(多选), `--copy`, `--installed-only`, `--no-gitignore` |
 | `update` | 药典更新：刷新 lockfile | `--source <git-url>`, `--ref` |
 | `trust <id>` | 信任 MCP | - |

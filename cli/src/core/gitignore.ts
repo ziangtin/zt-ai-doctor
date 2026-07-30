@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { AgentConfig } from './agentConfig.js';
 
 /** 受管段标记：sync 产物在此段内自动维护，段外用户内容不动 */
 const BEGIN = '# >>> zai-doctor sync 产物（自动管理，请勿手动编辑此段） >>>';
@@ -71,4 +72,24 @@ export async function updateGitignore(projectRoot: string, entries: string[]): P
     next = prefix + block;
   }
   if (next !== raw) await fs.writeFile(gi, next, 'utf8');
+}
+
+/**
+ * 按受管 agent 集合刷新 .gitignore 受管段：取这些 agent 的 mappings 推导条目并写入。
+ * 返回写入的条目（供调用方报告）。sync / purge 共用。
+ */
+export async function syncGitignore(
+  projectRoot: string,
+  agents: Iterable<string>,
+  configs: AgentConfig[],
+): Promise<string[]> {
+  const set = new Set(agents);
+  const mappings: { targetPath: string }[] = [];
+  for (const c of configs) {
+    if (!set.has(c.name)) continue;
+    for (const m of Object.values(c.mappings)) mappings.push(m);
+  }
+  const entries = collectIgnoreEntries(mappings);
+  await updateGitignore(projectRoot, entries);
+  return entries;
 }

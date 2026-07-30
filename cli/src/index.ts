@@ -13,6 +13,7 @@ import { detectCommand } from './commands/detect.js';
 import { trustCommand } from './commands/trust.js';
 import { prescribeCommand } from './commands/prescribe.js';
 import { removeCommand } from './commands/remove.js';
+import { purgeCommand } from './commands/purge.js';
 import { UsageError } from './core/errors.js';
 
 const VERSION = '0.1.0';
@@ -137,6 +138,15 @@ program
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (id: string, opts: { agent?: string; copy?: boolean; project?: string }) =>
     handle(() => removeCommand(projectRootOf(opts), id, opts)),
+  );
+
+// 清除某 agent 的全部受管配置（不动 .agents/ 源资产与其他 agent）
+program
+  .command('purge <agent>')
+  .description('清除：删某 agent 的全部 sync 产物（受管配置），不动 .agents/ 源资产与其他 agent')
+  .option('--project <path>', '项目根目录（默认 cwd）')
+  .action(async (agent: string, opts: { project?: string }) =>
+    handle(() => purgeCommand(projectRootOf(opts), agent)),
   );
 
 // 信任 MCP
