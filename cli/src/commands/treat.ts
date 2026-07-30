@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, assetSubdir, lockfilePath, projectMcpJsonPath, resolveMarketPath } from '../core/paths.js';
 import { findAssetById, loadManifest } from '../core/market.js';
-import { readLockfile, upsertAsset, writeLockfile } from '../core/lockfile.js';
+import { readLockfile, upsertAsset, writeLockfile, trustMcp } from '../core/lockfile.js';
 import { upsertMcpServer } from '../core/mcpStore.js';
 import { validateMcpBody } from '../core/schema.js';
 import { runSync } from './sync.js';
@@ -80,6 +80,8 @@ export async function treatCommand(
         installedAt: new Date().toISOString(),
         marketPath: entry.path,
       });
+      // treat 即信任：sync 直接写入 MCP 配置，无需再手动 trust
+      lock = trustMcp(lock, id);
       lines.push(`✓ ${id}${opts.to ? `@${opts.to}` : ''}  -> ${path.relative(projectRoot, projectMcpJsonPath(projectRoot))} (${id})`);
       continue;
     }
@@ -103,12 +105,12 @@ export async function treatCommand(
   for (const line of lines) console.log(`  ${line}`);
   console.log(`   lockfile 已更新（共 ${lock.assets.length} 项）`);
 
-  console.log('   同步到 agent 配置...');
-  await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
-
-  // 刷新 rules/skills 索引 README（标记段内列表）
+  // 先刷新 rules/skills 索引 README，再 sync——确保 sync 镜像 README 时读到最新索引
   await writeAllIndexes(projectRoot);
   console.log('   索引：rules/README.md、skills/README.md 已刷新');
+
+  console.log('   同步到 agent 配置...');
+  await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
 
   if (notFound > 0) {
     process.exit(2);

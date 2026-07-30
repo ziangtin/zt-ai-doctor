@@ -142,7 +142,7 @@ program
 // 信任 MCP
 program
   .command('trust <id>')
-  .description('信任 MCP：展示 command/args，标记为信任（sync 才写入 MCP 配置）')
+  .description('信任 MCP：展示 command/args + 未固定版本警告（treat 已自动信任，此命令用于显式审查）')
   .option('--market <path>', '药典路径')
   .option('--project <path>', '项目根目录（默认 cwd）')
   .action(async (id: string, opts: { market?: string; project?: string }) =>

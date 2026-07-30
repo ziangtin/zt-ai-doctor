@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import type { AgentRenderer, AssetType, LoadedAsset, Placement, RenderContext } from '../core/types.js';
-import { agentsDir } from '../core/paths.js';
+import { agentsDir, assetSubdir } from '../core/paths.js';
 import { loadAgentConfig, type AgentConfig, type Mapping } from '../core/agentConfig.js';
 import { detectConfig } from '../core/configDetect.js';
 import { aggregateTransforms, perAssetTransforms } from './transforms.js';
@@ -90,6 +90,24 @@ function makeRenderer(cfg: AgentConfig): AgentRenderer {
             });
           }
         }
+      }
+      // 镜像 .agents/{rules,skills}/README.md 索引到各非聚合 mapping 的目录（{id} 之前部分）
+      for (const type of ['rule', 'skill'] as const) {
+        const mapping = cfg.mappings[type];
+        if (!mapping || mapping.aggregate) continue;
+        const idIdx = mapping.targetPath.indexOf('{id}');
+        if (idIdx <= 0) continue; // 无 {id} 或 {id} 在开头（无目录可放）
+        const typeRoot = mapping.targetPath.slice(0, idIdx).replace(/[/\\]+$/, '');
+        if (!typeRoot) continue;
+        const sourcePath = path.join(agentsDir(ctx.projectRoot), assetSubdir(type), 'README.md');
+        if (!(await exists(sourcePath))) continue;
+        placements.push({
+          assetIds: [`${type}-index`],
+          agent: cfg.name,
+          targetPath: path.join(ctx.projectRoot, typeRoot, 'README.md'),
+          sourcePath,
+          action: mapping.action,
+        });
       }
       return placements;
     },

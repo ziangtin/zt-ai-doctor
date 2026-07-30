@@ -6,6 +6,8 @@ import { initCommand } from '../src/commands/init.js';
 import { treatCommand } from '../src/commands/treat.js';
 import { runSync } from '../src/commands/sync.js';
 import { trustCommand } from '../src/commands/trust.js';
+import { readLockfile, writeLockfile, untrustMcp } from '../src/core/lockfile.js';
+import { lockfilePath } from '../src/core/paths.js';
 
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -59,7 +61,10 @@ describe('双 agent 同时存在', () => {
     await makeMarket(market, ASSETS);
     await initCommand(project, { market });
     await treatCommand(project, ['rule-1', 'mcp-1'], { market, copy: true });
-    // 不 trust mcp-1
+    // treat 自动信任后手动取消，模拟「未信任」
+    const lock = await readLockfile(lockfilePath(project));
+    if (!lock) throw new Error('lockfile missing');
+    await writeLockfile(lockfilePath(project), untrustMcp(lock, 'mcp-1'));
     const placements = await runSync(project, { copy: true });
     const mcpSkip = placements.find(
       (p) => p.assetIds.includes('mcp-1') && p.action === 'skip',

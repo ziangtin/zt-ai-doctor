@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, assetSubdir, lockfilePath, projectMcpJsonPath } from '../core/paths.js';
-import { readLockfile, writeLockfile, removeAsset } from '../core/lockfile.js';
+import { readLockfile, writeLockfile, removeAsset, untrustMcp } from '../core/lockfile.js';
 import { removeMcpServer } from '../core/mcpStore.js';
 import { runSync } from './sync.js';
 import { writeAllIndexes } from '../core/indexDoc.js';
@@ -40,18 +40,18 @@ export async function removeCommand(
     await fs.rm(targetFile, { force: true });
   }
 
-  // 从 lockfile 移除
-  const updated = removeAsset(lock, id);
+  // 从 lockfile 移除（MCP 同步取消信任，保持生命周期一致）
+  let updated = removeAsset(lock, id);
+  if (entry.type === 'mcp') updated = untrustMcp(updated, id);
   await writeLockfile(lockPath, updated);
 
   console.log(`🗑 [remove] 已移除 ${id}（${entry.type}）`);
   if (entry.type === 'mcp') {
     console.log(`   源：${path.relative(projectRoot, projectMcpJsonPath(projectRoot))}`);
   }
-  console.log('   同步清理 agent 配置...');
-  await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
-
-  // 刷新 rules/skills 索引 README（标记段内列表）
+  // 先刷新索引 README，再 sync--确保 sync 镜像 README 时读到最新索引
   await writeAllIndexes(projectRoot);
   console.log('   索引：rules/README.md、skills/README.md 已刷新');
+  console.log('   同步清理 agent 配置...');
+  await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
 }

@@ -8,6 +8,8 @@ import { overrideCommand } from '../src/commands/override.js';
 import { trustCommand } from '../src/commands/trust.js';
 import { runSync } from '../src/commands/sync.js';
 import { readMcpJson } from '../src/core/mcpStore.js';
+import { readLockfile, writeLockfile, untrustMcp } from '../src/core/lockfile.js';
+import { lockfilePath } from '../src/core/paths.js';
 import { UsageError } from '../src/core/errors.js';
 
 vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -74,12 +76,28 @@ describe('MCP 单文件模型', () => {
     expect(out.mcpServers['mcp-1']).toEqual({ command: 'npx', args: ['-y', 'pkg@1.0.0'] });
   });
 
-  it('未信任的 mcp 不写入 .mcp.json', async () => {
+  it('treat 自动信任 mcp，sync 写入 .mcp.json', async () => {
     await setup();
     await treatCommand(project, ['mcp-1'], { market, copy: true });
-    // 不 trust
+    // treat 已自动信任，无需显式 trust
     await runSync(project, { agent: 'claude', copy: true });
+    const out = JSON.parse(await readText(path.join(project, '.mcp.json'))) as {
+      mcpServers: Record<string, unknown>;
+    };
+    expect(out.mcpServers['mcp-1']).toEqual({ command: 'npx', args: ['-y', 'pkg@1.0.0'] });
+  });
+
+  it('手动取消信任后 sync 不写入 .mcp.json（信任闸门）', async () => {
+    await setup();
+    await treatCommand(project, ['mcp-1'], { market, copy: true });
+    // treat 自动信任后手动取消
+    const lock = await readLockfile(lockfilePath(project));
+    if (!lock) throw new Error('lockfile missing');
+    await writeLockfile(lockfilePath(project), untrustMcp(lock, 'mcp-1'));
+    const placements = await runSync(project, { agent: 'claude', copy: true });
     expect(await exists(path.join(project, '.mcp.json'))).toBe(false);
+    const mcpSkip = placements.find((p) => p.assetIds.includes('mcp-1') && p.action === 'skip');
+    expect(mcpSkip?.reason).toMatch(/未信任/);
   });
 
   it('override mcp 被拒绝', async () => {

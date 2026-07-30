@@ -64,3 +64,9 @@ export function trustMcp(lock: Lockfile, id: string): Lockfile {
     : [...(lock.trustedMcp ?? []), id].sort();
   return { ...lock, trustedMcp };
 }
+
+/** 取消信任某 MCP（remove 时清理，保持信任生命周期一致） */
+export function untrustMcp(lock: Lockfile, id: string): Lockfile {
+  const trustedMcp = (lock.trustedMcp ?? []).filter((x) => x !== id);
+  return { ...lock, trustedMcp };
+}

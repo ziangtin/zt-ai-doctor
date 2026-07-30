@@ -250,13 +250,16 @@ zai-doctor sync                # company 覆盖 baseline（同 id）
 - heading emoji 取 frontmatter `icon`，缺省 rules 📋 / skills 🧩；按 `priority` 降序排序
 - `README.md`、`*.override.md`、无 frontmatter 的 `.md` 不入索引，也不会被当资产
 - 用 `<!-- zai:index-begin -->` / `<!-- zai:index-end -->` 标记段保护：**标记段外的自定义前言/尾注不会被覆盖**；skills README 带 `name`/`description` frontmatter
+- **镜像到 agent 配置**：`sync` 时这两份 README 还会镜像到各 agent 的 rules/skills 目录（仅非聚合 mapping 才有目录），如 `.claude/rules/README.md`、`.claude/skills/README.md`、`.cursor/rules/README.md`、`.clinerules/README.md`；聚合型 agent（codex/windsurfrules/copilot 单文件）无目录则跳过
 
 ### MCP 信任
-MCP 资产 sync 前需显式信任（展示将执行的 command/args + 未固定版本警告）：
+`treat <mcp-id>` 时自动信任，`sync` 直接写入 MCP 配置，无需先 `trust`。`trust` 命令保留为可选的显式审查（展示将执行的 command/args + 未固定版本警告）：
 ```bash
-zai-doctor trust mcp-filesystem
-zai-doctor sync  # 信任后才写 MCP 配置；未信任则 skip
+zai-doctor treat mcp-filesystem   # 自动信任，sync 即写 .mcp.json
+zai-doctor trust mcp-filesystem   # 可选：查看 command/args + 版本固定提示
+zai-doctor sync                   # 写入 MCP 配置
 ```
+信任闸门仍在：手动从 `zai-doctor.lock.json` 的 `trustedMcp` 移除某 id 即可阻断其写入（`remove <mcp-id>` 会自动移除）。
 
 ### 药典更新
 ```bash

@@ -78,3 +78,18 @@ describe('Windsurf renderer', () => {
     expect(await exists(path.join(project, '.windsurfrules'))).toBe(true);
   });
 });
+
+describe('索引 README 镜像', () => {
+  it('claude 非聚合 mapping：rules/skills README 镜像到 .claude/', async () => {
+    await setup();
+    await runSync(project, { agent: 'claude', copy: true });
+    expect(await exists(path.join(project, '.claude', 'rules', 'README.md'))).toBe(true);
+    expect(await exists(path.join(project, '.claude', 'skills', 'README.md'))).toBe(true);
+  });
+
+  it('聚合型 agent（copilot）不镜像 README', async () => {
+    await setup();
+    await runSync(project, { agent: 'copilot', copy: true });
+    expect(await exists(path.join(project, '.github', 'README.md'))).toBe(false);
+  });
+});
