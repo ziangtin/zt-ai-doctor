@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, lockfilePath } from '../core/paths.js';
+import { collectIgnoreEntries, updateGitignore } from '../core/gitignore.js';
 import { loadProjectAssets } from '../core/project.js';
 import { loadProjectMcp } from '../core/mcpStore.js';
 import { readLockfile } from '../core/lockfile.js';
@@ -95,7 +96,7 @@ function parseAgents(
 /** sync 核心：读 .agents/ -> 层级合并 -> 按 agent + 信任过滤 -> 渲染 + 放置（受管）+ GC + 报告 */
 export async function runSync(
   projectRoot: string,
-  opts: { agent?: string; copy?: boolean; installedOnly?: boolean } = {},
+  opts: { agent?: string; copy?: boolean; installedOnly?: boolean; gitignore?: boolean } = {},
 ): Promise<Placement[]> {
   const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
   for (const e of loadErrors) console.log(`  ⚠ 跳过非法资产: ${e}`);
@@ -203,12 +204,33 @@ export async function runSync(
 
   await writeReport(projectRoot, all, resolvedAll, overrides, gcRemoved, gcConflicts, lock);
   printSummary(projectRoot, all);
+
+  // .gitignore 受管产物段：默认写（--no-gitignore 跳过）。以最终 manifest 出现的 agent 为准，
+  // 这样部分同步（--agent X）不会冲掉其他 agent 的条目（其记录仍在 keptPrev）。
+  if (opts.gitignore !== false) {
+    const recordAgents = new Set<string>();
+    for (const r of [...keptPrev, ...newRecords]) recordAgents.add(r.agent);
+    const configs = await loadAgentConfig(projectRoot);
+    const mappings: { targetPath: string }[] = [];
+    for (const c of configs) {
+      if (!recordAgents.has(c.name)) continue;
+      for (const m of Object.values(c.mappings)) mappings.push(m);
+    }
+    const entries = collectIgnoreEntries(mappings);
+    await updateGitignore(projectRoot, entries);
+    console.log(
+      entries.length
+        ? `   .gitignore：受管产物段已更新（${entries.length} 项）`
+        : '   .gitignore：无受管产物，已清空受管段',
+    );
+  }
+
   return all;
 }
 
 export async function syncCommand(
   projectRoot: string,
-  opts: { agent?: string; copy?: boolean; installedOnly?: boolean },
+  opts: { agent?: string; copy?: boolean; installedOnly?: boolean; gitignore?: boolean },
 ): Promise<void> {
   await runSync(projectRoot, opts);
 }

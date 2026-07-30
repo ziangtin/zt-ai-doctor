@@ -185,8 +185,11 @@ zai-doctor sync --agent claude        # 指定单个 agent
 zai-doctor sync --agent claude,cursor # 逗号多选
 zai-doctor sync --copy                # 强制 copy（不用软链，无软链权限环境用）
 zai-doctor sync --installed-only      # 仅同步环境探测已安装的 agent（默认关，允许预生成配置）
+zai-doctor sync --no-gitignore        # 不自动写 .gitignore（默认写）
 ```
 软链优先，权限不足降级 copy（受管，改 canonical 后重跑 sync 会更新）；用户改过的目标文件不覆盖（conflict skip）。
+
+**自动 .gitignore**：sync 默认把生成的 agent 配置产物写入项目 `.gitignore` 的受管段（`# >>> zai-doctor sync 产物 >>>` … `# <<< zai-doctor sync 产物 <<<`），段外内容不动。粒度按 `agents.json` 的 mapping 推导：含 `{id}` 的目录型忽略整个受管子目录（如 `.claude/rules/`、`.clinerules/`），聚合单文件型忽略具体文件（如 `.mcp.json`、`AGENTS.md`、`.github/copilot-instructions.md`）--**只精确到受管子目录/文件，不会忽略 `.claude/`、`.github/` 等整目录**。以 sync 后的 manifest 为准，`--agent` 部分同步不会冲掉其他 agent 的条目。`treat`/`remove` 内部触发 sync 时同样维护。加 `--no-gitignore` 可跳过。
 
 ### ⑥ 复诊 `diagnose`
 ```bash
@@ -215,7 +218,7 @@ company override 文件不动（手动删 `.agents/<type>/<id>.override.md`）�
 | `treat [ids...]` | 下药：装资产 + sync | `--agent`(多选), `--copy`, `--to <ver>` |
 | `override <id>` | company 覆盖起点 | - |
 | `remove <id>` | 移除资产 + GC | `--agent`(多选), `--copy` |
-| `sync` | 换药：渲染到 agent 配置 | `--agent`(多选), `--copy`, `--installed-only` |
+| `sync` | 换药：渲染到 agent 配置 | `--agent`(多选), `--copy`, `--installed-only`, `--no-gitignore` |
 | `update` | 药典更新：刷新 lockfile | `--source <git-url>`, `--ref` |
 | `trust <id>` | 信任 MCP | - |
 

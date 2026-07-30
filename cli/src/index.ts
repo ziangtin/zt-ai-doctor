@@ -156,9 +156,16 @@ program
   .option('--agent <name>', '同步到指定 agent，支持逗号多选（如 claude,cursor）')
   .option('--copy', '强制 copy（不用软链，适合无软链权限的环境）')
   .option('--installed-only', '仅同步环境探测已安装的 agent（默认关，允许预生成配置）')
+  .option('--no-gitignore', '不要自动把 sync 产物写入 .gitignore（默认写入受管段）')
   .option('--project <path>', '项目根目录（默认 cwd）')
-  .action(async (opts: { agent?: string; copy?: boolean; installedOnly?: boolean; project?: string }) =>
-    handle(() => syncCommand(projectRootOf(opts), opts)),
+  .action(
+    async (opts: {
+      agent?: string;
+      copy?: boolean;
+      installedOnly?: boolean;
+      gitignore?: boolean;
+      project?: string;
+    }) => handle(() => syncCommand(projectRootOf(opts), opts)),
   );
 
 // 药典更新
