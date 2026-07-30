@@ -36,15 +36,15 @@ describe('loadBundledAgentConfig', () => {
     );
     expect(names).toHaveLength(8);
   });
-  it('claude supports rule/skill/mcp，rule 聚合到 CLAUDE.md 且 aggregateSource=README.md', async () => {
+  it('claude supports rule/skill/mcp，rule 逐文件到 .claude/rules/<id>.md', async () => {
     const configs = await loadBundledAgentConfig();
     const claude = configs.find((c) => c.name === 'claude')!;
     expect(claude.supports).toEqual(['rule', 'skill', 'mcp']);
     const rule = claude.mappings.rule!;
-    expect(rule.targetPath).toBe('CLAUDE.md');
-    expect(rule.aggregate).toBe(true);
-    expect(rule.transform).toBe('rule-aggregate-md');
-    expect(rule.aggregateSource).toBe('README.md');
+    expect(rule.targetPath).toBe('.claude/rules/{id}.md');
+    expect(rule.aggregate).toBe(false);
+    expect(rule.transform).toBe('rule-md');
+    expect(rule.aggregateSource).toBeUndefined();
   });
   it('cursor rule 为 1:1 .mdc，transform=rule-mdc', async () => {
     const cursor = (await loadBundledAgentConfig()).find((c) => c.name === 'cursor')!;
@@ -149,7 +149,7 @@ describe('sync --agent 多选', () => {
     const placements = await runSync(project, { agent: 'claude,cursor', copy: true });
     const agents = [...new Set(placements.map((p) => p.agent))];
     expect(agents).toEqual(expect.arrayContaining(['claude', 'cursor']));
-    expect(await exists(path.join(project, 'CLAUDE.md'))).toBe(true);
+    expect(await exists(path.join(project, '.claude', 'rules', 'rule-1.md'))).toBe(true);
     expect(await exists(path.join(project, '.cursor', 'rules', 'rule-1.mdc'))).toBe(true);
   });
   it('未知 agent 报 UsageError', async () => {

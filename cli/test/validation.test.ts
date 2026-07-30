@@ -11,6 +11,12 @@ import { runSync } from '../src/commands/sync.js';
 import { trustCommand } from '../src/commands/trust.js';
 import { diagnoseCommand } from '../src/commands/diagnose.js';
 
+// diagnose 内部 detectAllEnv 真实探测 PATH/注册表很慢，mock 掉避免并发测试超时
+vi.mock('../src/core/envDetect.js', () => ({
+  detectAllEnv: async () => [],
+  detectAgentEnv: async () => ({ agent: '', installed: false, signals: [] }),
+}));
+
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -42,6 +48,59 @@ describe('schema 校验（纯函数）', () => {
   });
 });
 
+describe('manifest 多版本与兼容（纯函数）', () => {
+  it('新格式 versions 校验通过，path 填为最高版本', () => {
+    const m = validateManifest({
+      name: 'm',
+      version: '0.1.0',
+      assets: [
+        {
+          id: 'a',
+          type: 'rule',
+          versions: [
+            { version: '1.0.0', path: 'rules/a-v1.md' },
+            { version: '1.2.0', path: 'rules/a-v2.md' },
+          ],
+        },
+      ],
+    });
+    expect(m.assets[0].versions).toHaveLength(2);
+    expect(m.assets[0].path).toBe('rules/a-v2.md');
+  });
+  it('旧格式单 path 归一化为单元素 versions（version 留空）', () => {
+    const m = validateManifest({
+      name: 'm',
+      version: '0.1.0',
+      assets: [{ id: 'a', type: 'rule', path: 'rules/a.md' }],
+    });
+    expect(m.assets[0].versions).toHaveLength(1);
+    expect(m.assets[0].versions[0].version).toBeUndefined();
+    expect(m.assets[0].path).toBe('rules/a.md');
+  });
+  it('versions 空数组被拒', () => {
+    expect(() =>
+      validateManifest({
+        name: 'm',
+        version: '0.1.0',
+        assets: [{ id: 'a', type: 'rule', versions: [] }],
+      }),
+    ).toThrow(UsageError);
+  });
+  it('非法 version 格式被拒', () => {
+    expect(() =>
+      validateManifest({
+        name: 'm',
+        version: '0.1.0',
+        assets: [{ id: 'a', type: 'rule', versions: [{ version: '1.0', path: 'r.md' }] }],
+      }),
+    ).toThrow(UsageError);
+  });
+  it('assetMeta version 合法/非法', () => {
+    expect(validateAssetMeta({ id: 'a', type: 'rule', version: '1.0.0' }).version).toBe('1.0.0');
+    expect(() => validateAssetMeta({ id: 'a', type: 'rule', version: '1.0' })).toThrow(UsageError);
+  });
+});
+
 describe('market 加载边界', () => {
   let market = '';
   beforeEach(async () => {
@@ -69,6 +128,24 @@ describe('market 加载边界', () => {
       'utf8',
     );
     await expect(findAssetById(market, 'a')).rejects.toThrow(UsageError);
+  });
+  it('manifest version 与 frontmatter version 不一致被拒绝', async () => {
+    await fs.mkdir(path.join(market, 'rules'), { recursive: true });
+    await fs.writeFile(
+      path.join(market, 'rules', 'a.md'),
+      '---\nid: a\ntype: rule\nversion: 1.0.0\n---\n\nbody\n',
+      'utf8',
+    );
+    await fs.writeFile(
+      path.join(market, 'manifest.json'),
+      JSON.stringify({
+        name: 'm',
+        version: '0.1.0',
+        assets: [{ id: 'a', type: 'rule', versions: [{ version: '2.0.0', path: 'rules/a.md' }] }],
+      }),
+      'utf8',
+    );
+    await expect(findAssetById(market, 'a')).rejects.toThrow(/version 不一致/);
   });
 });
 

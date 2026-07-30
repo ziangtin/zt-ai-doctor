@@ -3,11 +3,13 @@ import path from 'node:path';
 import { agentsDir, lockfilePath, resolveMarketPath } from '../core/paths.js';
 import { readLockfile } from '../core/lockfile.js';
 import { loadProjectAssets } from '../core/project.js';
+import { loadProjectMcp } from '../core/mcpStore.js';
 import { findAssetById } from '../core/market.js';
 import { hashFileFull } from '../core/hash.js';
 import { loadRenderers } from '../renderers/index.js';
 import { loadAgentConfig } from '../core/agentConfig.js';
 import { detectAllEnv } from '../core/envDetect.js';
+import { normalizeVersion } from '../core/semver.js';
 import type { AssetType } from '../core/types.js';
 
 type Severity = 'block' | 'warn' | 'info';
@@ -46,6 +48,8 @@ export async function diagnoseCommand(
 
   const lock = await readLockfile(lockfilePath(projectRoot));
   const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
+  const mcpAssets = await loadProjectMcp(projectRoot);
+  const allAssets = [...assets, ...mcpAssets];
   const renderers = await loadRenderers(projectRoot);
   const detected: string[] = [];
   for (const r of renderers) {
@@ -68,7 +72,7 @@ export async function diagnoseCommand(
   out.push('');
 
   // 2. 资产健康
-  out.push(`资产健康（.agents/ 共 ${assets.length} 项${loadErrors.length ? `，${loadErrors.length} 项加载失败` : ''}）`);
+  out.push(`资产健康（.agents/ 共 ${allAssets.length} 项${loadErrors.length ? `，${loadErrors.length} 项加载失败` : ''}）`);
   for (const e of loadErrors) {
     out.push(`  🔴 ${e}`);
     findings.push({
@@ -87,11 +91,12 @@ export async function diagnoseCommand(
     if (!a.meta.type) schemaIssues.push(`${a.entry.path} 缺 type`);
     else if (!VALID_TYPES.includes(a.meta.type))
       schemaIssues.push(`${a.entry.path} 未知 type=${a.meta.type}`);
+    // tamper 仅检查 rule/skill/prompt（.md 文件）；mcp 单文件模型不参与 tamper
     const le = lockById.get(a.meta.id);
     if (le && le.hash !== a.hash) tampered.push(a.meta.id);
   }
   for (const le of lock?.assets ?? []) {
-    if (!assets.find((a) => a.meta.id === le.id)) missing.push(le.id);
+    if (!allAssets.find((a) => a.meta.id === le.id)) missing.push(le.id);
   }
 
   out.push(schemaIssues.length ? `  🔴 schema 问题 ${schemaIssues.length}` : '  ✓ schema 正常');
@@ -132,15 +137,42 @@ export async function diagnoseCommand(
       }
     }
     const stale: string[] = [];
+    const versionLag: string[] = [];
+    const versionGone: string[] = [];
+    const hashChangedNoBump: string[] = [];
     for (const le of lock?.assets ?? []) {
       const m = await findAssetById(marketPath, le.id);
-      if (m && m.hash !== le.hash) stale.push(le.id);
+      if (!m) continue;
+      const mktVer = normalizeVersion(m.meta.version);
+      // 仅当 lockfile 记录了 version 才做版本维度对比（旧 lockfile 无 version，只靠 hash）
+      if (le.version) {
+        const lockVer = normalizeVersion(le.version);
+        const stillExists = m.entry.versions.some((v) => normalizeVersion(v.version) === lockVer);
+        if (!stillExists) versionGone.push(`${le.id}@${lockVer}`);
+        else if (lockVer !== mktVer) versionLag.push(`${le.id} ${lockVer} -> ${mktVer}`);
+      }
+      if (m.hash !== le.hash) {
+        stale.push(le.id);
+        if (le.version && normalizeVersion(le.version) === mktVer) hashChangedNoBump.push(le.id);
+      }
+    }
+    if (versionLag.length) {
+      out.push(`  🟡 版本滞后 ${versionLag.length}：${versionLag.join('；')}（重跑 treat 升级）`);
+      for (const v of versionLag)
+        findings.push({ severity: 'warn', category: '药典', message: `${v} 可更新` });
+    }
+    if (versionGone.length) {
+      out.push(`  🟡 已装版本已从药典移除 ${versionGone.length}：${versionGone.join('；')}（回退或升级到现有版本）`);
+      for (const v of versionGone)
+        findings.push({ severity: 'warn', category: '药典', message: `${v} 已从药典移除` });
     }
     if (stale.length) {
-      out.push(`  🟡 资产过期 ${stale.length}：${stale.join(', ')}（重跑 treat）`);
+      const note = hashChangedNoBump.length ? `（其中 ${hashChangedNoBump.length} 项版本号未更新）` : '';
+      out.push(`  🟡 内容已变 ${stale.length}：${stale.join(', ')}${note}（重跑 treat）`);
       for (const s of stale)
-        findings.push({ severity: 'warn', category: '药典', message: `${s} 已过期，重跑 treat` });
-    } else {
+        findings.push({ severity: 'warn', category: '药典', message: `${s} 内容已变，重跑 treat` });
+    }
+    if (!versionLag.length && !versionGone.length && !stale.length) {
       out.push('  ✓ 已装资产与药典一致');
     }
   } catch {

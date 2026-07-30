@@ -1,6 +1,7 @@
 ---
 id: react-ts
 type: rule
+icon: 💻
 title: React + TypeScript 项目规则
 description: 约束 React/TS 代码风格、组件结构与类型规范
 tags: [react, ts, frontend]
@@ -10,6 +11,7 @@ stack:
 agents: [claude, cursor, copilot]
 layer: baseline
 priority: 100
+version: 1.0.0
 ---
 
 # React + TypeScript 规则

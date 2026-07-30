@@ -2,9 +2,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
-import type { LoadedAsset, Manifest } from './types.js';
+import type { LoadedAsset, Manifest, ManifestVersion } from './types.js';
 import { assertWithinBase, validateAssetMeta, validateManifest } from './schema.js';
 import { UsageError } from './errors.js';
+import { normalizeVersion, maxVersionIndex } from './semver.js';
 
 /** 读取并校验药典 manifest */
 export async function loadManifest(marketPath: string): Promise<Manifest> {
@@ -12,15 +13,32 @@ export async function loadManifest(marketPath: string): Promise<Manifest> {
   return validateManifest(JSON.parse(raw));
 }
 
-/** 按 id 查找并加载资产（含路径越界防护、frontmatter 校验、manifest/frontmatter 一致性） */
-export async function findAssetById(marketPath: string, id: string): Promise<LoadedAsset | null> {
+/** 按 id 查找并加载资产（含路径越界防护、frontmatter 校验、manifest/frontmatter 一致性）。
+ *  version 指定 -> 取该版本（找不到返回 null）；缺省 -> 取 semver 最高版本。 */
+export async function findAssetById(
+  marketPath: string,
+  id: string,
+  version?: string,
+): Promise<LoadedAsset | null> {
   const manifest = await loadManifest(marketPath);
   const entry = manifest.assets.find((a) => a.id === id);
   if (!entry) return null;
 
-  assertWithinBase(marketPath, entry.path, `manifest 资产 ${entry.id} 的 path`);
+  // 选版本：指定 -> 精确匹配（缺省视为 0.0.0）；缺省 -> semver 最高
+  let v: ManifestVersion;
+  if (version) {
+    const want = normalizeVersion(version);
+    const found = entry.versions.find((x) => normalizeVersion(x.version) === want);
+    if (!found) return null;
+    v = found;
+  } else {
+    const idx = maxVersionIndex(entry.versions);
+    v = entry.versions[idx];
+  }
 
-  const full = path.join(marketPath, entry.path);
+  assertWithinBase(marketPath, v.path, `manifest 资产 ${entry.id}@${version ?? 'latest'} 的 path`);
+
+  const full = path.join(marketPath, v.path);
   const raw = await fs.readFile(full, 'utf8');
   const parsed = matter(raw);
   const meta = validateAssetMeta(parsed.data);
@@ -29,6 +47,13 @@ export async function findAssetById(marketPath: string, id: string): Promise<Loa
       `manifest 与 frontmatter 不一致: manifest=${entry.id}/${entry.type} frontmatter=${meta.id}/${meta.type}`,
     );
   }
+  // manifest 声明 version 时，与 frontmatter version 一致性校验
+  if (v.version && meta.version && v.version !== meta.version) {
+    throw new UsageError(
+      `manifest 与 frontmatter version 不一致: ${entry.id} manifest=${v.version} frontmatter=${meta.version}`,
+    );
+  }
   const hash = createHash('sha256').update(raw).digest('hex');
-  return { entry, meta, raw, content: parsed.content, hash };
+  // entry.path 设为实际加载版本的 path，便于调用方展示
+  return { entry: { ...entry, path: v.path }, meta, raw, content: parsed.content, hash };
 }

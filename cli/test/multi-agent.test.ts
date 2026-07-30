@@ -40,7 +40,7 @@ describe('双 agent 同时存在', () => {
     const placements = await runSync(project, { copy: true });
 
     // claude 产物
-    expect(await exists(path.join(project, 'CLAUDE.md'))).toBe(true);
+    expect(await exists(path.join(project, '.claude', 'rules', 'rule-1.md'))).toBe(true);
     expect(await exists(path.join(project, '.mcp.json'))).toBe(true);
     expect(await exists(path.join(project, '.claude', 'skills', 'skill-1', 'SKILL.md'))).toBe(true);
 

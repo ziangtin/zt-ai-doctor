@@ -7,5 +7,6 @@ tags: [browser, dev, debug]
 agents: [claude, cursor, copilot]
 layer: baseline
 priority: 90
+version: 1.0.0
 ---
 { "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"] }

@@ -6,7 +6,7 @@ zai-doctor 各 renderer 对资产类型（rule/skill/mcp）的支持与目标路
 
 | agent | rule | skill | mcp | 配置探测标记 |
 |---|---|---|---|---|
-| claude | ✓ `CLAUDE.md`（聚合自 `.agents/README.md`） | ✓ `.claude/skills/<id>/SKILL.md` | ✓ `.mcp.json` | `.claude/` 或 `CLAUDE.md` |
+| claude | ✓ `.claude/rules/<id>.md` | ✓ `.claude/skills/<id>/SKILL.md` | ✓ `.mcp.json` | `.claude/` 或 `CLAUDE.md` |
 | cursor | ✓ `.cursor/rules/<id>.mdc` | skip | ✓ `.cursor/mcp.json` | `.cursor/` 或 `.cursorrules` |
 | copilot | ✓ `.github/copilot-instructions.md` | skip | ✓ `.vscode/mcp.json` | `.github/copilot-instructions.md` 或 `.vscode/mcp.json` |
 | codex | ✓ `AGENTS.md` | skip | skip（全局 `~/.codex/config.toml`） | `AGENTS.md` |
@@ -17,10 +17,11 @@ zai-doctor 各 renderer 对资产类型（rule/skill/mcp）的支持与目标路
 
 ## 说明
 
-- **rule**：各 agent 的项目级指令文件。聚合型（claude/codex/windsurf/copilot）按 `priority` 降序拼成单文件；单文件型（cursor/trae/lingma/cline）每条规则一文件（cursor/trae/lingma 带 `description/globs/alwaysApply` frontmatter 用 `rule-mdc`，cline 纯 markdown 用 `rule-md`）。
+- **rule**：各 agent 的项目级指令文件。聚合型（codex/windsurf/copilot）按 `priority` 降序拼成单文件；单文件型（claude/cursor/trae/lingma/cline）每条规则一文件（claude/cursor/trae/lingma 带 frontmatter 用 `rule-mdc`，cline 纯 markdown 用 `rule-md`）。Claude rules 同步到 `.claude/rules/<id>.md`，不再聚合进 `CLAUDE.md`。
 - **skill**：仅 Claude Code 有 skill 概念；其它 agent sync 时显式 skip（`skill 不被 <agent> 支持`）。
 - **mcp**：
-  - **项目级 MCP 配置**：Claude（`.mcp.json`）、Cursor（`.cursor/mcp.json`）、Copilot（`.vscode/mcp.json`）、Trae（`.trae/mcp.json`）。
+  - **源**：项目级 MCP 统一存单文件 `.agents/mcp.json`（`{mcpServers:{id:body}}`），`treat <mcp-id>` 合并写入，`trust` 按 id 过滤，`remove` 删条目。
+  - **项目级 MCP 配置目标**：Claude（`.mcp.json`）、Cursor（`.cursor/mcp.json`）、Copilot（`.vscode/mcp.json`）、Trae（`.trae/mcp.json`）。sync 把受信 server 从 `.agents/mcp.json` 渲染到各目标。
   - **全局/UI 管理 MCP**：Codex（`~/.codex/config.toml`）、Cline（`~/.cline/`）、Windsurf（`~/.codeium/`）、Lingma（IDE 设置 UI）。zai-doctor **不自动改**这些，相关 mcp 资产 sync 时 skip；用各 agent 自身机制配置。
   - 所有 mcp 资产需先 `zai-doctor trust <id>` 才写入项目级配置。
 - **trae**：ByteDance Trae IDE，规则/MCP 格式与 Cursor 一致（frontmatter + `{mcpServers}`），见 [docs.trae.ai](https://docs.trae.ai/ide/rules)。

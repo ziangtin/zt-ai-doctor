@@ -19,13 +19,25 @@ export interface AssetMeta {
   layer: Layer;
   priority: number;
   stack?: { deps?: string[]; files?: string[] };
+  /** 资产版本（semver，权威来源）。缺省视为 0.0.0（未版本化）。 */
+  version?: string;
+}
+
+/** manifest 中某个资产的一个版本项 */
+export interface ManifestVersion {
+  /** 版本号（semver）。新格式声明；旧单 path 格式归一化时留空，从 frontmatter 读。 */
+  version?: string;
+  path: string;
 }
 
 /** market/manifest.json 中的资产索引项 */
 export interface ManifestAssetEntry {
   id: string;
   type: AssetType;
+  /** 最新版本 path（归一化填，兼容现有 entry.path 调用） */
   path: string;
+  /** 所有版本；旧单 path 格式归一化为单元素数组（version 留空，从 frontmatter 读） */
+  versions: ManifestVersion[];
 }
 
 export interface Manifest {
@@ -40,6 +52,8 @@ export interface LockfileEntry {
   id: string;
   type: AssetType;
   hash: string;
+  /** 装时版本快照（semver）。旧 lockfile 无此字段，视为 0.0.0。 */
+  version?: string;
   installedAt: string;
   marketPath: string;
 }

@@ -29,24 +29,24 @@ describe('受管放置 (copy 模式)', () => {
     await setup([{ id: 'react-ts', type: 'rule', body: 'Use React 18 with TS strict.' }]);
     await treatCommand(project, ['react-ts'], { market, copy: true });
     await runSync(project, { agent: 'claude', copy: true });
-    const claudeMd = path.join(project, 'CLAUDE.md');
-    expect(await exists(claudeMd)).toBe(true);
+    const claudeRule = path.join(project, '.claude', 'rules', 'react-ts.md');
+    expect(await exists(claudeRule)).toBe(true);
 
     // 改 canonical 源
     await fs.appendFile(path.join(project, '.agents', 'rules', 'react-ts.md'), '\n\n## NEW MARKER\n');
     await runSync(project, { agent: 'claude', copy: true });
-    expect(await readText(claudeMd)).toContain('NEW MARKER');
+    expect(await readText(claudeRule)).toContain('NEW MARKER');
   });
 
   it('用户手改目标文件后重同步不覆盖（conflict 保护）', async () => {
     await setup([{ id: 'react-ts', type: 'rule', body: 'Use React 18 with TS strict.' }]);
     await treatCommand(project, ['react-ts'], { market, copy: true });
     await runSync(project, { agent: 'claude', copy: true });
-    const claudeMd = path.join(project, 'CLAUDE.md');
-    const before = await readText(claudeMd);
-    await fs.appendFile(claudeMd, '\nUSER EDIT\n');
+    const claudeRule = path.join(project, '.claude', 'rules', 'react-ts.md');
+    const before = await readText(claudeRule);
+    await fs.appendFile(claudeRule, '\nUSER EDIT\n');
     await runSync(project, { agent: 'claude', copy: true });
-    const after = await readText(claudeMd);
+    const after = await readText(claudeRule);
     expect(after).toContain('USER EDIT');
     expect(after).toBe(before + '\nUSER EDIT\n');
   });
@@ -76,14 +76,14 @@ describe('受管放置 (copy 模式)', () => {
     await fs.mkdir(path.join(project, '.claude'), { recursive: true });
     await fs.mkdir(path.join(project, '.cursor'), { recursive: true });
     await runSync(project, { copy: true });
-    const claudeMd = path.join(project, 'CLAUDE.md');
+    const claudeRule = path.join(project, '.claude', 'rules', 'rule-a.md');
     const cursorMd = path.join(project, '.cursor', 'rules', 'rule-a.mdc');
-    expect(await exists(claudeMd)).toBe(true);
+    expect(await exists(claudeRule)).toBe(true);
     expect(await exists(cursorMd)).toBe(true);
 
     // 仅 sync claude -> cursor 目标应保留
     await runSync(project, { agent: 'claude', copy: true });
-    expect(await exists(claudeMd)).toBe(true);
+    expect(await exists(claudeRule)).toBe(true);
     expect(await exists(cursorMd)).toBe(true);
   });
 
@@ -103,8 +103,8 @@ describe('受管放置 (copy 模式)', () => {
 
     await treatCommand(project, ['react-ts'], { market });
     await runSync(project, { agent: 'claude' });
-    const claudeMd = path.join(project, 'CLAUDE.md');
-    expect(await exists(claudeMd)).toBe(true);
-    expect((await fs.lstat(claudeMd)).isSymbolicLink()).toBe(true);
+    const claudeRule = path.join(project, '.claude', 'rules', 'react-ts.md');
+    expect(await exists(claudeRule)).toBe(true);
+    expect((await fs.lstat(claudeRule)).isSymbolicLink()).toBe(true);
   });
 });

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import path from 'node:path';
-import type { AssetMeta, Lockfile, Manifest } from './types.js';
+import type { AssetMeta, AssetType, Lockfile, Manifest, ManifestVersion } from './types.js';
 import { UsageError } from './errors.js';
+import { SEMVER_REGEX, maxVersionIndex } from './semver.js';
 
 /** 安全 id 格式：小写字母数字开头，仅允许 . _ -，禁止路径分隔符 */
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]*$/, 'id 必须匹配 ^[a-z0-9][a-z0-9._-]*$');
@@ -23,20 +24,45 @@ const assetMetaSchema = z.object({
       files: z.array(z.string()).optional(),
     })
     .optional(),
+  version: z.string().regex(SEMVER_REGEX).optional(),
+});
+
+const manifestVersionSchema = z.object({
+  version: z.string().regex(SEMVER_REGEX).optional(),
+  path: z.string().min(1),
+});
+
+const manifestAssetSchema = z.object({
+  id: idSchema,
+  type: assetTypeSchema,
+  versions: z.array(manifestVersionSchema).min(1),
 });
 
 const manifestSchema = z.object({
   name: z.string(),
   version: z.string(),
   description: z.string().optional(),
-  assets: z.array(
-    z.object({
-      id: idSchema,
-      type: assetTypeSchema,
-      path: z.string().min(1),
-    }),
-  ),
+  assets: z.array(manifestAssetSchema),
 });
+
+/** 归一化 manifest 原始数据：旧单 path 格式 -> versions 单元素数组；新格式去残留 path */
+function normalizeRawManifest(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null) return raw;
+  const m = raw as Record<string, unknown>;
+  if (!Array.isArray(m.assets)) return raw;
+  const assets = m.assets.map((a) => {
+    if (typeof a !== 'object' || a === null) return a;
+    const obj = a as Record<string, unknown>;
+    if (Array.isArray(obj.versions)) {
+      return { id: obj.id, type: obj.type, versions: obj.versions };
+    }
+    if (typeof obj.path === 'string') {
+      return { id: obj.id, type: obj.type, versions: [{ path: obj.path }] };
+    }
+    return obj;
+  });
+  return { ...m, assets };
+}
 
 const marketSourceSchema = z.object({
   type: z.enum(['local', 'git', 'npm']),
@@ -57,6 +83,7 @@ const lockfileSchema = z.object({
       hash: z.string(),
       installedAt: z.string(),
       marketPath: z.string(),
+      version: z.string().optional(),
     }),
   ),
 });
@@ -87,7 +114,19 @@ function parseOrThrow<T>(schema: z.ZodType, raw: unknown, label: string): T {
 }
 
 export function validateManifest(raw: unknown): Manifest {
-  return parseOrThrow<Manifest>(manifestSchema, raw, 'manifest');
+  const normalized = normalizeRawManifest(raw);
+  const parsed = parseOrThrow<{
+    name: string;
+    version: string;
+    description?: string;
+    assets: { id: string; type: AssetType; versions: ManifestVersion[] }[];
+  }>(manifestSchema, normalized, 'manifest');
+  // 填 path = 最新版本（semver 最高）的 path，兼容 entry.path 调用
+  const assets = parsed.assets.map((a) => {
+    const idx = maxVersionIndex(a.versions);
+    return { id: a.id, type: a.type, versions: a.versions, path: a.versions[idx].path };
+  });
+  return { name: parsed.name, version: parsed.version, description: parsed.description, assets };
 }
 
 export function validateAssetMeta(raw: unknown): AssetMeta {

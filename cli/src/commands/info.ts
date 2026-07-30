@@ -30,12 +30,14 @@ export async function infoCommand(
       `   stack:       deps=[${meta.stack.deps?.join(', ') ?? ''}] files=[${meta.stack.files?.join(', ') ?? ''}]`,
     );
   }
+  console.log(`   version:     ${meta.version ?? '0.0.0'}`);
+  console.log(`   可用版本:    ${entry.versions.map((v) => v.version ?? '0.0.0').join(', ')}`);
   console.log(`   marketPath:  ${entry.path}`);
   console.log(`   hash:        ${hash}`);
   console.log(`   药典版本:     ${lock?.market.version ?? '(未建档)'}`);
   if (installed) {
-    const match = installed.hash === hash ? '' : '  ⚠ 与药典不一致（药典已更新，重跑 treat）';
-    console.log(`   已装:        是  (hash ${installed.hash}${match})`);
+    const hashMatch = installed.hash === hash ? '' : '  ⚠ 内容与药典不一致（重跑 treat）';
+    console.log(`   已装:        是  版本 ${installed.version ?? '0.0.0'}  (hash ${installed.hash.slice(0, 12)}${hashMatch})`);
   } else {
     console.log(`   已装:        否`);
   }

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { agentsDir, lockfilePath } from '../core/paths.js';
 import { loadProjectAssets } from '../core/project.js';
+import { loadProjectMcp } from '../core/mcpStore.js';
 import { readLockfile } from '../core/lockfile.js';
 import { place, removeIfManaged } from '../core/place.js';
 import { resolveAssets } from '../core/layers.js';
@@ -98,11 +99,14 @@ export async function runSync(
 ): Promise<Placement[]> {
   const { assets, errors: loadErrors } = await loadProjectAssets(projectRoot);
   for (const e of loadErrors) console.log(`  ⚠ 跳过非法资产: ${e}`);
-  if (assets.length === 0) {
+  const mcpAssets = await loadProjectMcp(projectRoot);
+  if (assets.length === 0 && mcpAssets.length === 0) {
     console.log('🔄 [sync] .agents/ 无资产，先 zai-doctor treat <id>');
     return [];
   }
   const { resolved, overrides } = resolveAssets(assets);
+  // MCP 单文件模型：从 .agents/mcp.json 加载，与分层合并后的 rule/skill/prompt 合并
+  const resolvedAll = [...resolved, ...mcpAssets];
 
   const lock = await readLockfile(lockfilePath(projectRoot));
   const trustedMcp = new Set(lock?.trustedMcp ?? []);
@@ -154,7 +158,7 @@ export async function runSync(
       buildDir: path.join(agentsDir(projectRoot), '.build', r.name),
       projectRoot,
     };
-    const { applicable, skips } = applicableAssets(resolved, r, trustedMcp);
+    const { applicable, skips } = applicableAssets(resolvedAll, r, trustedMcp);
     const placements = await r.renderAll(applicable, ctx);
     for (const p of [...skips, ...placements]) {
       if (p.action === 'skip') {
@@ -197,7 +201,7 @@ export async function runSync(
     for (const t of gcConflicts) console.log(`   ⚠ ${path.relative(projectRoot, t)}`);
   }
 
-  await writeReport(projectRoot, all, resolved, overrides, gcRemoved, gcConflicts, lock);
+  await writeReport(projectRoot, all, resolvedAll, overrides, gcRemoved, gcConflicts, lock);
   printSummary(projectRoot, all);
   return all;
 }

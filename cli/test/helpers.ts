@@ -12,10 +12,19 @@ export interface AssetSpec {
   priority?: number;
   agents?: string[];
   title?: string;
+  description?: string;
+  icon?: string;
+  rules?: string[];
   stack?: { deps?: string[]; files?: string[] };
   tags?: string[];
+  version?: string;
   body: string;
   filename?: string;
+}
+
+export interface MakeMarketOptions {
+  /** 生成旧格式 manifest（单 path，无 versions）用于兼容性测试。默认 false（新格式 versions）。 */
+  legacy?: boolean;
 }
 
 const SUBDIR: Record<AssetType, string> = {
@@ -37,9 +46,14 @@ export async function rmrf(p: string): Promise<void> {
   await fs.rm(p, { recursive: true, force: true });
 }
 
-/** 在 dir 建一个 mini market（manifest + 资产文件），返回 dir */
-export async function makeMarket(dir: string, assets: AssetSpec[]): Promise<string> {
-  const entries: { id: string; type: AssetType; path: string }[] = [];
+/** 在 dir 建一个 mini market（manifest + 资产文件），返回 dir。
+ *  默认生成新格式 manifest（versions 数组）；opts.legacy=true 生成旧格式（单 path）用于兼容性测试。 */
+export async function makeMarket(
+  dir: string,
+  assets: AssetSpec[],
+  opts: MakeMarketOptions = {},
+): Promise<string> {
+  const entries: object[] = [];
   for (const a of assets) {
     const subdir = SUBDIR[a.type];
     const fname = a.filename ?? `${a.id}.md`;
@@ -47,10 +61,14 @@ export async function makeMarket(dir: string, assets: AssetSpec[]): Promise<stri
     await fs.mkdir(path.dirname(p), { recursive: true });
     const fm: string[] = ['---', `id: ${a.id}`, `type: ${a.type}`];
     if (a.title) fm.push(`title: ${JSON.stringify(a.title)}`);
+    if (a.description) fm.push(`description: ${JSON.stringify(a.description)}`);
+    if (a.icon) fm.push(`icon: ${a.icon}`);
     if (a.layer) fm.push(`layer: ${a.layer}`);
     if (a.priority !== undefined) fm.push(`priority: ${a.priority}`);
     if (a.agents) fm.push(`agents: [${a.agents.join(', ')}]`);
+    if (a.rules) fm.push(`rules: [${a.rules.join(', ')}]`);
     if (a.tags) fm.push(`tags: [${a.tags.join(', ')}]`);
+    if (a.version) fm.push(`version: ${a.version}`);
     if (a.stack) {
       const parts: string[] = [];
       if (a.stack.deps?.length) parts.push(`deps: [${a.stack.deps.join(', ')}]`);
@@ -59,7 +77,12 @@ export async function makeMarket(dir: string, assets: AssetSpec[]): Promise<stri
     }
     fm.push('---', '', a.body.trim(), '');
     await fs.writeFile(p, fm.join('\n'), 'utf8');
-    entries.push({ id: a.id, type: a.type, path: `${subdir}/${fname}` });
+    const rel = `${subdir}/${fname}`;
+    if (opts.legacy) {
+      entries.push({ id: a.id, type: a.type, path: rel });
+    } else {
+      entries.push({ id: a.id, type: a.type, versions: [{ version: a.version ?? '1.0.0', path: rel }] });
+    }
   }
   await fs.writeFile(
     path.join(dir, 'manifest.json'),

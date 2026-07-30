@@ -29,9 +29,12 @@ export async function overrideCommand(
   if (!asset) {
     throw new UsageError(`药典中未找到: ${id}`);
   }
+  if (asset.meta.type === 'mcp') {
+    throw new UsageError('MCP 不支持 override（单文件 .agents/mcp.json 模型，直接编辑该文件）');
+  }
 
   const targetDir = path.join(agentsDir(projectRoot), assetSubdir(asset.meta.type));
-  const targetFile = path.join(targetDir, `${path.basename(asset.entry.path, '.md')}.override.md`);
+  const targetFile = path.join(targetDir, `${asset.meta.id}.override.md`);
   if (await exists(targetFile)) {
     throw new UsageError(
       `已存在覆盖: ${path.relative(projectRoot, targetFile)}（直接编辑，或删除后重试）`,

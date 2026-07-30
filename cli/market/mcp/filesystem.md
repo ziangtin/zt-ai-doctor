@@ -7,6 +7,7 @@ tags: [core]
 agents: [claude, cursor, copilot]
 layer: baseline
 priority: 100
+version: 1.0.0
 ---
 
 {

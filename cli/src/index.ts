@@ -112,8 +112,9 @@ program
   .option('--project <path>', '项目根目录（默认 cwd）')
   .option('--agent <name>', '同步到指定 agent，支持逗号多选（如 claude,cursor）')
   .option('--copy', '强制 copy（不用软链）')
+  .option('--to <version>', '装指定版本（回退到旧版本）')
   .action(
-    async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean }) =>
+    async (ids: string[], opts: { market?: string; project?: string; agent?: string; copy?: boolean; to?: string }) =>
       handle(() => treatCommand(projectRootOf(opts), ids, opts)),
   );
 

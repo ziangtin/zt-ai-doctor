@@ -1,13 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { agentsDir, assetSubdir, lockfilePath } from '../core/paths.js';
+import { agentsDir, assetSubdir, lockfilePath, projectMcpJsonPath } from '../core/paths.js';
 import { readLockfile, writeLockfile, removeAsset } from '../core/lockfile.js';
+import { removeMcpServer } from '../core/mcpStore.js';
 import { runSync } from './sync.js';
+import { writeAllIndexes } from '../core/indexDoc.js';
 import { UsageError } from '../core/errors.js';
 
 /**
  * remove <id>：移除已装资产。
- * 删 .agents/<type>/<file> + 从 lockfile 移除 + sync（GC 清理 agent 配置中的受管目标）。
+ * rule/skill/prompt：删 .agents/<type>/<file>；mcp：从 .agents/mcp.json 删条目。
+ * 从 lockfile 移除 + sync（GC 清理 agent 配置中的受管目标）。
  * override 文件不动（用户覆盖，手动删）。
  */
 export async function removeCommand(
@@ -25,19 +28,30 @@ export async function removeCommand(
     throw new UsageError(`未安装资产: ${id}`);
   }
 
-  // 删 .agents/<type>/<file>
-  const targetFile = path.join(
-    agentsDir(projectRoot),
-    assetSubdir(entry.type),
-    path.basename(entry.marketPath),
-  );
-  await fs.rm(targetFile, { force: true });
+  // 删已装资产（mcp 从单文件 mcp.json 删条目，其余删 .md 文件）
+  if (entry.type === 'mcp') {
+    await removeMcpServer(projectRoot, id);
+  } else {
+    const targetFile = path.join(
+      agentsDir(projectRoot),
+      assetSubdir(entry.type),
+      path.basename(entry.marketPath),
+    );
+    await fs.rm(targetFile, { force: true });
+  }
 
   // 从 lockfile 移除
   const updated = removeAsset(lock, id);
   await writeLockfile(lockPath, updated);
 
   console.log(`🗑 [remove] 已移除 ${id}（${entry.type}）`);
+  if (entry.type === 'mcp') {
+    console.log(`   源：${path.relative(projectRoot, projectMcpJsonPath(projectRoot))}`);
+  }
   console.log('   同步清理 agent 配置...');
   await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
+
+  // 刷新 rules/skills 索引 README（标记段内列表）
+  await writeAllIndexes(projectRoot);
+  console.log('   索引：rules/README.md、skills/README.md 已刷新');
 }

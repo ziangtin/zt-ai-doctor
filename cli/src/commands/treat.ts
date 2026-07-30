@@ -1,9 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { agentsDir, assetSubdir, lockfilePath, resolveMarketPath } from '../core/paths.js';
-import { findAssetById } from '../core/market.js';
+import { agentsDir, assetSubdir, lockfilePath, projectMcpJsonPath, resolveMarketPath } from '../core/paths.js';
+import { findAssetById, loadManifest } from '../core/market.js';
 import { readLockfile, upsertAsset, writeLockfile } from '../core/lockfile.js';
+import { upsertMcpServer } from '../core/mcpStore.js';
+import { validateMcpBody } from '../core/schema.js';
 import { runSync } from './sync.js';
+import { writeAllIndexes } from '../core/indexDoc.js';
 import { UsageError } from '../core/errors.js';
 import { readPrescriptionSelection } from '../core/prescription.js';
 
@@ -16,7 +19,7 @@ import { readPrescriptionSelection } from '../core/prescription.js';
 export async function treatCommand(
   projectRoot: string,
   ids: string[],
-  opts: { market?: string; agent?: string; copy?: boolean },
+  opts: { market?: string; agent?: string; copy?: boolean; to?: string },
 ): Promise<void> {
   let toInstall = ids;
   if (toInstall.length === 0) {
@@ -44,25 +47,55 @@ export async function treatCommand(
   let notFound = 0;
 
   for (const id of toInstall) {
-    const asset = await findAssetById(marketPath, id);
+    const asset = await findAssetById(marketPath, id, opts.to);
     if (!asset) {
+      // 区分 id 不存在 vs 指定版本不存在
+      if (opts.to) {
+        const manifest = await loadManifest(marketPath);
+        const entry = manifest.assets.find((a) => a.id === id);
+        if (entry) {
+          const avail = entry.versions.map((v) => v.version ?? '0.0.0').join(', ');
+          throw new UsageError(`${id} 无版本 ${opts.to}（可用: ${avail}）`);
+        }
+      }
       lines.push(`✗ ${id}  药典中未找到`);
       notFound++;
       continue;
     }
     const { entry, meta, raw, hash } = asset;
+    if (meta.type === 'mcp') {
+      // MCP 单文件模型：解析 body 合并进 .agents/mcp.json（不再写 .agents/mcp/<id>.md）
+      let body: unknown;
+      try {
+        body = validateMcpBody(JSON.parse(asset.content));
+      } catch (e) {
+        throw new UsageError(`${id}: MCP body 非法（${(e as Error).message}）`);
+      }
+      await upsertMcpServer(projectRoot, id, body);
+      lock = upsertAsset(lock, {
+        id,
+        type: meta.type,
+        hash,
+        version: meta.version,
+        installedAt: new Date().toISOString(),
+        marketPath: entry.path,
+      });
+      lines.push(`✓ ${id}${opts.to ? `@${opts.to}` : ''}  -> ${path.relative(projectRoot, projectMcpJsonPath(projectRoot))} (${id})`);
+      continue;
+    }
     const targetDir = path.join(agentsDir(projectRoot), assetSubdir(meta.type));
-    const targetFile = path.join(targetDir, path.basename(entry.path));
+    const targetFile = path.join(targetDir, `${meta.id}.md`);
     await fs.mkdir(targetDir, { recursive: true });
     await fs.writeFile(targetFile, raw, 'utf8');
     lock = upsertAsset(lock, {
       id,
       type: meta.type,
       hash,
+      version: meta.version,
       installedAt: new Date().toISOString(),
       marketPath: entry.path,
     });
-    lines.push(`✓ ${id}  -> ${path.relative(projectRoot, targetFile)}`);
+    lines.push(`✓ ${id}${opts.to ? `@${opts.to}` : ''}  -> ${path.relative(projectRoot, targetFile)}`);
   }
 
   await writeLockfile(lockPath, lock);
@@ -72,6 +105,10 @@ export async function treatCommand(
 
   console.log('   同步到 agent 配置...');
   await runSync(projectRoot, { agent: opts.agent, copy: opts.copy });
+
+  // 刷新 rules/skills 索引 README（标记段内列表）
+  await writeAllIndexes(projectRoot);
+  console.log('   索引：rules/README.md、skills/README.md 已刷新');
 
   if (notFound > 0) {
     process.exit(2);

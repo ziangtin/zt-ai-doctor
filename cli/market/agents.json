@@ -11,11 +11,10 @@
       },
       "mappings": {
         "rule": {
-          "targetPath": "CLAUDE.md",
-          "aggregate": true,
+          "targetPath": ".claude/rules/{id}.md",
+          "aggregate": false,
           "action": "symlink",
-          "transform": "rule-aggregate-md",
-          "aggregateSource": "README.md"
+          "transform": "rule-md"
         },
         "skill": {
           "targetPath": ".claude/skills/{id}/SKILL.md",

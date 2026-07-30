@@ -4,6 +4,7 @@ import { agentsDir, lockfilePath, marketSourceUri, resolveMarketPath } from '../
 import { loadManifest } from '../core/market.js';
 import { emptyLockfile, readLockfileOrNone, writeLockfile } from '../core/lockfile.js';
 import { hashFileFull } from '../core/hash.js';
+import { writeAllIndexes } from '../core/indexDoc.js';
 import type { MarketSource } from '../core/types.js';
 
 async function pathExists(p: string): Promise<boolean> {
@@ -15,18 +16,21 @@ async function pathExists(p: string): Promise<boolean> {
   }
 }
 
-/** .agents/ 内自带的 gitignore：忽略生成物，保留 rules/skills/mcp 与用户覆盖（*.override.md） */
+/** .agents/ 内自带的 gitignore：仅忽略生成物；rules/skills/prompts/mcp.json 与 *.override.md 提交到项目（不发布到工具 market） */
 const AGENTS_GITIGNORE = `.build/
-README.md
 `;
 
 export async function initCommand(projectRoot: string, opts: { market?: string }): Promise<void> {
   const dir = agentsDir(projectRoot);
 
-  for (const sub of ['rules', 'skills', 'mcp', 'prompts', '.build']) {
+  // MCP 为单文件 .agents/mcp.json，不建 mcp/ 子目录
+  for (const sub of ['rules', 'skills', 'prompts', '.build']) {
     await fs.mkdir(path.join(dir, sub), { recursive: true });
   }
   await fs.writeFile(path.join(dir, '.gitignore'), AGENTS_GITIGNORE, 'utf8');
+
+  // 落空索引占位（rules/skills README，标记段结构就位，后续 treat/remove 仅刷新段内列表）
+  await writeAllIndexes(projectRoot);
 
   const marketPath = resolveMarketPath(opts.market);
   const manifest = await loadManifest(marketPath);
@@ -52,4 +56,5 @@ export async function initCommand(projectRoot: string, opts: { market?: string }
   console.log(`   lockfile：${path.relative(projectRoot, lockPath)}`);
   console.log(`   integrity：${integrity.slice(0, 16)}…`);
   console.log(`   已建档资产：${lock.assets.length}`);
+  console.log(`   索引：rules/README.md、skills/README.md`);
 }

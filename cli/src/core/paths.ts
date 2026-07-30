@@ -17,6 +17,11 @@ export function projectAgentsConfigPath(projectRoot: string): string {
   return path.join(agentsDir(projectRoot), 'agents.json');
 }
 
+/** 项目 MCP 单文件源：.agents/mcp.json（{mcpServers:{id:body}}），sync 同步到各 agent 的 mcp.json */
+export function projectMcpJsonPath(projectRoot: string): string {
+  return path.join(agentsDir(projectRoot), 'mcp.json');
+}
+
 /** 项目级 .agents/ 目录 */
 export function agentsDir(projectRoot: string): string {
   return path.join(projectRoot, '.agents');

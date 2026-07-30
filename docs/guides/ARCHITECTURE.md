@@ -40,16 +40,16 @@ flowchart TD
 
 ## 2. 数据流（设计 · 数据视角）
 
-药典（`market`）经 `treat` 拷贝成项目内 canonical 源（`.agents/<type>/`），再经 `sync` 渲染成构建产物（`.build/<agent>/`），最后以 symlink/copy 落到各 agent 原生配置。company overlay 按 id 覆盖 canonical，lockfile 记录并校验已装资产。
+药典（`market`）经 `treat` 拷贝成项目内 canonical 源（`.agents/<type>/`，MCP 为单文件 `.agents/mcp.json`），再经 `sync` 渲染成构建产物（`.build/<agent>/`），最后以 symlink/copy 落到各 agent 原生配置。company overlay 按 id 覆盖 canonical，lockfile 记录并校验已装资产（含装时 version，`diagnose` 据此检测版本滞后，`treat --to` 回退；药典 manifest 支持多版本，见 [MARKET.md](./MARKET.md)）。
 
 ```mermaid
 flowchart LR
     M[("market 药典<br/>cli/market")]
-    CO[".agents/company/<br/>overlay (gitignored)"]
-    A[".agents/&lt;type&gt;/<br/>canonical 源"]
+    CO[".agents/<type>/<id>.override.md<br/>layer:company（提交到项目）"]
+    A[".agents/&lt;type&gt;/ + mcp.json<br/>canonical 源"]
     B[".build/&lt;agent&gt;/<br/>构建产物 (gitignored)"]
-    T["agent 配置<br/>CLAUDE.md / .cursor / .mcp.json ..."]
-    L[("zai.lock.json<br/>已装资产 + hash")]
+    T["agent 配置<br/>.claude/rules / .cursor / .mcp.json ..."]
+    L[("zai-doctor.lock.json<br/>已装资产 + hash + version")]
 
     M -- "treat 拷贝" --> A
     CO -. "同 id 覆盖" .-> A

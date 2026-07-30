@@ -14,7 +14,7 @@ renderer 不再硬编码这些，全部从配置读取。**新增 agent 或调�
 
 | agent | 规则目标 | MCP 目标 | 说明 |
 |---|---|---|---|
-| claude | `CLAUDE.md`（聚合） | `.mcp.json` | + skill -> `.claude/skills/<id>/SKILL.md` |
+| claude | `.claude/rules/{id}.md` | `.mcp.json` | + skill -> `.claude/skills/<id>/SKILL.md`；rules 不再进 CLAUDE.md |
 | cursor | `.cursor/rules/{id}.mdc` | `.cursor/mcp.json` | |
 | copilot | `.github/copilot-instructions.md`（聚合） | `.vscode/mcp.json` | |
 | codex | `AGENTS.md`（聚合） | - | |
@@ -49,11 +49,10 @@ renderer 不再硬编码这些，全部从配置读取。**新增 agent 或调�
       },
       "mappings": {
         "rule": {
-          "targetPath": "CLAUDE.md",                  // 目标路径模板，支持 {id} 占位
-          "aggregate": true,                          // true=多资产聚合成单文件；false=一资产一文件
-          "action": "symlink",                        // symlink | copy
-          "transform": "rule-aggregate-md",           // 转换 profile 名（见下表）
-          "aggregateSource": "README.md"              // 聚合产物源文件（相对 .agents/，可选；默认 .build/<agent>/<basename>）
+          "targetPath": ".claude/rules/{id}.md",        // 目标路径模板，支持 {id} 占位
+          "aggregate": false,                           // true=多资产聚合成单文件；false=一资产一文件
+          "action": "symlink",                          // symlink | copy
+          "transform": "rule-md"                        // 转换 profile 名（见下表）
         },
         "skill": {
           "targetPath": ".claude/skills/{id}/SKILL.md",

@@ -3,10 +3,10 @@
   "version": "0.1.1",
   "description": "zai-doctor 药典：canonical agent-agnostic 资产",
   "assets": [
-    { "id": "react-ts", "type": "rule", "path": "rules/react-ts.md" },
-    { "id": "frontend-review", "type": "skill", "path": "skills/frontend-review.md" },
-    { "id": "mcp-filesystem", "type": "mcp", "path": "mcp/filesystem.md" },
-    { "id": "mcp-codegraph", "type": "mcp", "path": "mcp/codegraph.md" },
-    { "id": "mcp-chrome-devtools", "type": "mcp", "path": "mcp/chrome.md" }
+    { "id": "react-ts", "type": "rule", "versions": [{ "version": "1.0.0", "path": "rules/react-ts.md" }] },
+    { "id": "frontend-review", "type": "skill", "versions": [{ "version": "1.0.0", "path": "skills/frontend-review.md" }] },
+    { "id": "mcp-filesystem", "type": "mcp", "versions": [{ "version": "1.0.0", "path": "mcp/filesystem.md" }] },
+    { "id": "mcp-codegraph", "type": "mcp", "versions": [{ "version": "1.0.0", "path": "mcp/codegraph.md" }] },
+    { "id": "mcp-chrome-devtools", "type": "mcp", "versions": [{ "version": "1.0.0", "path": "mcp/chrome.md" }] }
   ]
 }

@@ -1,12 +1,15 @@
 ---
 id: frontend-review
 type: skill
+icon: 🔍
 title: 前端代码审查
 description: Claude 专用的前端 PR 审查 skill，检查组件/类型/可访问性
 tags: [review, frontend]
 agents: [claude]
+rules: [react-ts]
 layer: baseline
 priority: 100
+version: 1.0.0
 ---
 
 # 前端代码审查 Skill（Claude-only）

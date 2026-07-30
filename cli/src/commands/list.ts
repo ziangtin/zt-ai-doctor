@@ -35,7 +35,8 @@ export async function listCommand(
   for (const { meta } of filtered) {
     const mark = installedIds.has(meta.id) ? '✓' : '·';
     const tags = (meta.tags ?? []).join(', ') || '-';
-    console.log(`  ${mark} ${meta.id}  [${meta.type}]  tags: ${tags}`);
+    const ver = meta.version ? `@${meta.version}` : '';
+    console.log(`  ${mark} ${meta.id}${ver}  [${meta.type}]  tags: ${tags}`);
     if (meta.title) console.log(`      ${meta.title}`);
   }
 }

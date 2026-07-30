@@ -14,7 +14,7 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 
 function makeAsset(id: string, layer: Layer = 'baseline', priority = 0): LoadedAsset {
   return {
-    entry: { id, type: 'rule', path: `rules/${id}.md` },
+    entry: { id, type: 'rule', path: `rules/${id}.md`, versions: [{ path: `rules/${id}.md` }] },
     meta: {
       id,
       type: 'rule',
@@ -81,7 +81,7 @@ describe('company overlay 端到端', () => {
 
     await fs.mkdir(path.join(project, '.claude'), { recursive: true });
     await runSync(project, { agent: 'claude', copy: true });
-    const out = await readText(path.join(project, 'CLAUDE.md'));
+    const out = await readText(path.join(project, '.claude', 'rules', 'react-ts.md'));
     expect(out).toContain('COMPANY BODY');
     expect(out).not.toContain('BASELINE BODY');
   });

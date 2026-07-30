@@ -8,6 +8,7 @@ import { validateAssetMeta } from './schema.js';
 
 /**
  * 扫描项目资产：.agents/<type>/*.md，layer 取自 frontmatter（baseline/personal/company）。
+ * 注意：MCP 不在此扫描（单文件 .agents/mcp.json，见 mcpStore.loadProjectMcp）。
  * 用户覆盖（override）文件 <id>.override.md 也在同一目录，frontmatter 标 layer: company。
  */
 export interface LoadProjectResult {
@@ -21,7 +22,7 @@ export async function loadProjectAssets(projectRoot: string): Promise<LoadProjec
   const assets: LoadedAsset[] = [];
   const errors: string[] = [];
 
-  for (const sub of ['rules', 'skills', 'mcp', 'prompts']) {
+  for (const sub of ['rules', 'skills', 'prompts']) {
     await loadDir(path.join(dir, sub), dir, assets, errors);
   }
   return { assets, errors };
@@ -56,10 +57,12 @@ async function loadDir(
       continue;
     }
     const hash = createHash('sha256').update(raw).digest('hex');
+    const rel = path.relative(baseDir, full);
     const entry: ManifestAssetEntry = {
       id: meta.id,
       type: meta.type,
-      path: path.relative(baseDir, full),
+      path: rel,
+      versions: [{ path: rel }],
     };
     assets.push({ entry, meta, raw, content: parsed.content, hash });
   }

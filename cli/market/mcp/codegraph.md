@@ -7,5 +7,6 @@ tags: [code, dev, search]
 agents: [claude, cursor, copilot]
 layer: baseline
 priority: 90
+version: 1.0.0
 ---
 { "command": "codegraph", "args": ["serve", "--mcp"] }
