@@ -81,9 +81,6 @@ export async function writePrescription(projectRoot: string, data: PrescriptionD
       lines.push(`- [ ] ${r.asset.meta.id}  [${r.asset.meta.type}]`);
       lines.push(`  - 信号: ${r.match.noStack ? '无 stack 声明' : '未匹配'}`);
       if (r.asset.meta.description) lines.push(`  - 说明: ${r.asset.meta.description}`);
-      const onlyClaude =
-        r.asset.meta.agents?.length === 1 && r.asset.meta.agents[0] === 'claude';
-      if (onlyClaude) lines.push('  - ⚠ skill 仅 Claude 可用，其它 agent sync 时 skip');
       if (r.mcp) lines.push(...mcpLines(r.mcp));
     }
   }

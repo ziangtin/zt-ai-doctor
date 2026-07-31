@@ -18,7 +18,7 @@ zai-doctor 各 renderer 对资产类型（rule/skill/mcp）的支持与目标路
 ## 说明
 
 - **rule**：各 agent 的项目级指令文件。聚合型（codex/windsurf/copilot）按 `priority` 降序拼成单文件；单文件型（claude/cursor/trae/lingma/cline）每条规则一文件（claude/cursor/trae/lingma 带 frontmatter 用 `rule-mdc`，cline 纯 markdown 用 `rule-md`）。Claude rules 同步到 `.claude/rules/<id>.md`，不再聚合进 `CLAUDE.md`。
-- **skill**：仅 Claude Code 有 skill 概念；其它 agent sync 时显式 skip（`skill 不被 <agent> 支持`）。
+- **skill**：按各 agent 的 skill 映射同步（目前仅 claude 声明了 skill 映射，同步到 `.claude/skills/<id>/SKILL.md` + 附属文件）；未声明 skill 映射的 agent sync 时 skip（`skill 不被 <agent> 支持`）。skill 资产不绑定具体 agent，agent 能否识别目录下的 skill 由 agent 自身决定，zai-doctor 不关心。
 - **mcp**：
   - **源**：项目级 MCP 统一存单文件 `.agents/mcp.json`（`{mcpServers:{id:body}}`），`treat <mcp-id>` 合并写入，`trust` 按 id 过滤，`remove` 删条目。
   - **项目级 MCP 配置目标**：Claude（`.mcp.json`）、Cursor（`.cursor/mcp.json`）、Copilot（`.vscode/mcp.json`）、Trae（`.trae/mcp.json`）。sync 把受信 server 从 `.agents/mcp.json` 渲染到各目标。

@@ -7,7 +7,7 @@ import { upsertMcpServer } from '../core/mcpStore.js';
 import { validateMcpBody } from '../core/schema.js';
 import { runSync } from './sync.js';
 import { writeAllIndexes } from '../core/indexDoc.js';
-import { hashFileFull } from '../core/hash.js';
+import { hashFileFull, hashDir } from '../core/hash.js';
 import { UsageError } from '../core/errors.js';
 import { readPrescriptionSelection } from '../core/prescription.js';
 
@@ -86,6 +86,33 @@ export async function treatCommand(
       lines.push(`✓ ${id}${opts.to ? `@${opts.to}` : ''}  -> ${path.relative(projectRoot, projectMcpJsonPath(projectRoot))} (${id})`);
       continue;
     }
+    // skill 目录资产：装成 .agents/skills/<id>/（含 scripts/ 等附属文件）
+    if (asset.dirPath) {
+      const targetDir = path.join(agentsDir(projectRoot), assetSubdir(meta.type), meta.id);
+      // 冲突保护：已存在目录若被本地改过（hashDir ≠ lockfile 装时记录），跳过覆盖；--force 强制
+      if (!opts.force) {
+        const installed = lock.assets.find((a) => a.id === id);
+        const existingHash = await hashDir(targetDir).catch(() => null);
+        if (installed && existingHash && existingHash !== installed.hash) {
+          lines.push(`⚠ ${id}${opts.to ? `@${opts.to}` : ''}  本地已修改，跳过覆盖（--force 强制）`);
+          continue;
+        }
+      }
+      await fs.rm(targetDir, { recursive: true, force: true });
+      await fs.cp(asset.dirPath, targetDir, { recursive: true });
+      lock = upsertAsset(lock, {
+        id,
+        type: meta.type,
+        hash,
+        version: meta.version,
+        installedAt: new Date().toISOString(),
+        marketPath: entry.path,
+      });
+      lines.push(`✓ ${id}${opts.to ? `@${opts.to}` : ''}  -> ${path.relative(projectRoot, targetDir)}/`);
+      continue;
+    }
+
+    // 单文件资产（rule/prompt）：装成 .agents/<type>/<id>.md
     const targetDir = path.join(agentsDir(projectRoot), assetSubdir(meta.type));
     const targetFile = path.join(targetDir, `${meta.id}.md`);
     await fs.mkdir(targetDir, { recursive: true });

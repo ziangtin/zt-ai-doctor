@@ -51,7 +51,7 @@ zt-ai-doctor/
 ```
 <project>/.agents/
 ├── rules/           # canonical 源：每条规则一个 .md（frontmatter + id）← 在这里改
-├── skills/          # Claude skill（Claude-only，文档标清）
+├── skills/          # skill 资产（<id>/SKILL.md 目录，agent-agnostic）
 ├── mcp/             # MCP 配置资产（JSON body）
 ├── README.md        # sync 聚合生成（rules 合并的统一来源/文档，gitignored，勿手改）
 ├── .build/          # sync 生成的 per-agent 产物（gitignored）

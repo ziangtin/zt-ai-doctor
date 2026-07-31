@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Placement, PlacementRecord } from './types.js';
-import { hashFile } from './hash.js';
+import { hashFile, hashDir } from './hash.js';
 
 async function exists(p: string): Promise<boolean> {
   try {
@@ -36,6 +36,7 @@ export async function place(
   projectRoot: string,
 ): Promise<PlaceResult> {
   if (p.action === 'skip') return { placement: p, record: null };
+  if (p.kind === 'dir') return placeDir(p, prev, forceCopy, projectRoot);
   await fs.mkdir(path.dirname(p.targetPath), { recursive: true });
   const sourceHash = await hashFile(p.sourcePath);
   const sourceRel = path.relative(projectRoot, p.sourcePath);
@@ -98,17 +99,85 @@ export async function place(
   return { placement: { ...p, action }, record };
 }
 
+/** 目录级放置（skill 目录资产）。软链目录优先，权限不足降级递归 copy；冲突保护用 hashDir。
+ *  逻辑与 place() 单文件版对称：symlink 替换 / hash 一致 no-op / 受管可覆盖 / 否则冲突 skip。 */
+async function placeDir(
+  p: Placement,
+  prev: PlacementRecord | undefined,
+  forceCopy: boolean,
+  projectRoot: string,
+): Promise<PlaceResult> {
+  await fs.mkdir(path.dirname(p.targetPath), { recursive: true });
+  const sourceHash = await hashDir(p.sourcePath);
+  const sourceRel = path.relative(projectRoot, p.sourcePath);
+
+  if (await exists(p.targetPath)) {
+    const stat = await fs.lstat(p.targetPath);
+    if (stat.isSymbolicLink()) {
+      await fs.rm(p.targetPath, { recursive: true });
+    } else {
+      const targetHash = await hashDir(p.targetPath);
+      if (targetHash === sourceHash) {
+        const action: 'symlink' | 'copy' = prev?.action ?? 'copy';
+        const record: PlacementRecord = {
+          targetPath: p.targetPath,
+          agent: p.agent,
+          action,
+          sourcePath: sourceRel,
+          hash: sourceHash,
+          assetIds: p.assetIds,
+          kind: 'dir',
+        };
+        return { placement: { ...p, action, reason: '已是最新' }, record };
+      }
+      if (prev && targetHash === prev.hash) {
+        await fs.rm(p.targetPath, { recursive: true });
+      } else {
+        return {
+          placement: { ...p, action: 'skip', reason: '目标目录已被修改，未覆盖（受管冲突，删除后重跑 sync）' },
+          record: null,
+        };
+      }
+    }
+  }
+
+  let action: 'symlink' | 'copy' = 'symlink';
+  if (!forceCopy) {
+    const linkTarget = path.relative(path.dirname(p.targetPath), p.sourcePath);
+    try {
+      await fs.symlink(linkTarget, p.targetPath, 'dir');
+    } catch {
+      await fs.cp(p.sourcePath, p.targetPath, { recursive: true });
+      action = 'copy';
+    }
+  } else {
+    await fs.cp(p.sourcePath, p.targetPath, { recursive: true });
+    action = 'copy';
+  }
+
+  const record: PlacementRecord = {
+    targetPath: p.targetPath,
+    agent: p.agent,
+    action,
+    sourcePath: sourceRel,
+    hash: sourceHash,
+    assetIds: p.assetIds,
+    kind: 'dir',
+  };
+  return { placement: { ...p, action }, record };
+}
+
 /** GC 用：清理上一轮受管、本轮未再生成的目标（仅当未被用户改过） */
 export async function removeIfManaged(rec: PlacementRecord): Promise<'removed' | 'conflict' | 'gone'> {
   if (!(await exists(rec.targetPath))) return 'gone';
   const stat = await fs.lstat(rec.targetPath);
   if (stat.isSymbolicLink()) {
-    await fs.rm(rec.targetPath);
+    await fs.rm(rec.targetPath, { recursive: true });
     return 'removed';
   }
-  const h = await hashFile(rec.targetPath);
+  const h = rec.kind === 'dir' ? await hashDir(rec.targetPath) : await hashFile(rec.targetPath);
   if (h === rec.hash) {
-    await fs.rm(rec.targetPath);
+    await fs.rm(rec.targetPath, { recursive: rec.kind === 'dir' });
     return 'removed';
   }
   return 'conflict';

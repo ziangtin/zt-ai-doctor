@@ -81,6 +81,9 @@ export interface LoadedAsset {
   /** 正文（去掉 frontmatter） */
   content: string;
   hash: string;
+  /** 目录资产的目录绝对路径（skill <id>/SKILL.md）；单文件资产为 undefined。
+   *  有 dirPath 即目录资产，hash 为目录聚合 hash。 */
+  dirPath?: string;
 }
 
 /** sync 渲染后的一个放置项 */
@@ -92,6 +95,8 @@ export interface Placement {
   action: 'symlink' | 'copy' | 'skip';
   reason?: string;
   aggregate?: boolean;
+  /** 放置形态：file 单文件（默认）/ dir 整个目录（skill 目录资产） */
+  kind?: 'file' | 'dir';
 }
 
 /** placement manifest 中的一条受管记录（用于重同步与 GC） */
@@ -103,6 +108,8 @@ export interface PlacementRecord {
   sourcePath: string;
   hash: string;
   assetIds: string[];
+  /** 放置形态：file 单文件（默认，兼容旧 manifest）/ dir 整个目录 */
+  kind?: 'file' | 'dir';
 }
 
 export interface RenderContext {

@@ -82,18 +82,37 @@ function extractSections(body: string): string[] {
 
 /** 扫描目录下 *.md（排除 README.md 与 *.override.md），解析 frontmatter 成索引项。 */
 async function collectEntries(dir: string, type: IndexType): Promise<IndexEntry[]> {
-  let files: string[];
+  let names: string[];
   try {
-    files = await fs.readdir(dir);
+    names = await fs.readdir(dir);
   } catch {
     return [];
   }
   const entries: IndexEntry[] = [];
-  for (const f of files) {
-    if (!f.endsWith('.md')) continue;
-    if (f === 'README.md') continue;
-    if (f.endsWith('.override.md')) continue;
-    const raw = await fs.readFile(path.join(dir, f), 'utf8');
+  for (const name of names) {
+    if (name === 'README.md') continue;
+    if (name.endsWith('.override.md')) continue;
+
+    const full = path.join(dir, name);
+    const stat = await fs.stat(full).catch(() => null);
+    if (!stat) continue;
+
+    // 目录资产（skill <name>/SKILL.md）vs 单文件资产（rule <name>.md）
+    let raw: string;
+    let file: string;
+    if (stat.isDirectory()) {
+      const skillFile = path.join(full, 'SKILL.md');
+      const skillRaw = await fs.readFile(skillFile, 'utf8').catch(() => null);
+      if (skillRaw === null) continue; // 目录但无 SKILL.md，跳过
+      raw = skillRaw;
+      file = `${name}/SKILL.md`;
+    } else if (name.endsWith('.md')) {
+      raw = await fs.readFile(full, 'utf8');
+      file = name;
+    } else {
+      continue;
+    }
+
     const parsed = matter(raw);
     const d = parsed.data as Record<string, unknown>;
     // 与 loadProjectAssets 一致：无 id 且无 type 视为项目自有 .md，跳过
@@ -101,7 +120,7 @@ async function collectEntries(dir: string, type: IndexType): Promise<IndexEntry[
     const id = str(d.id);
     if (!id) continue;
     entries.push({
-      file: f,
+      file,
       id,
       title: str(d.title) || id,
       icon: str(d.icon) || DEFAULT_ICON[type],

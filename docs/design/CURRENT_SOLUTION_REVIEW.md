@@ -30,7 +30,7 @@
 ### 第三阶段（2026-07-28）：Phase 5 prescribe 开方
 
 - `prescribe` 命令：读项目 package.json 依赖 + 检测 agent + 匹配药典资产 `stack`（deps/files）-> 生成处方单（`.agents/.build/prescription.md`）。
-- 处方单含：技术栈、症状、推荐区（置信度 高/中 + 信号 + 原因，默认勾选）、可选区（无 stack/无匹配，含 MCP command/args + 未信任/未固定版本警告 + skill 仅 Claude 提示）、用法说明。
+- 处方单含：技术栈、症状、推荐区（置信度 高/中 + 信号 + 原因，默认勾选）、可选区（无 stack/无匹配，含 MCP command/args + 未信任/未固定版本警告）、用法说明。
 - `treat` 不带 id 改为读处方单勾选 `[x]` 抓药；无处方单/无勾选给明确提示。
 - `prescribe --tag` 按标签筛选资产。
 - 不自动装、不自动信任，保留人工挑选。

@@ -81,7 +81,6 @@ describe('prescribe 处方单生成', () => {
     expect(rx).toContain('置信度 高');
     expect(rx).toContain('可选');
     expect(rx).toContain('frontend-review');
-    expect(rx).toMatch(/skill 仅 Claude/);
   });
 
   it('空项目（无 package.json）：无推荐，全进可选', async () => {

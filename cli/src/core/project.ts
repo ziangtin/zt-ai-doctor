@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import type { AssetMeta, LoadedAsset, ManifestAssetEntry } from './types.js';
 import { agentsDir } from './paths.js';
 import { validateAssetMeta } from './schema.js';
+import { hashDir } from './hash.js';
 
 /**
  * 扫描项目资产：.agents/<type>/*.md，layer 取自 frontmatter（baseline/personal）。
@@ -34,15 +35,47 @@ async function loadDir(
   assets: LoadedAsset[],
   errors: string[],
 ): Promise<void> {
-  let files: string[];
+  let names: string[];
   try {
-    files = await fs.readdir(subDir);
+    names = await fs.readdir(subDir);
   } catch {
     return; // 子目录不存在
   }
-  for (const f of files.filter((x) => x.endsWith('.md'))) {
-    if (f.endsWith('.override.md')) continue; // 残留覆盖文件，忽略
-    const full = path.join(subDir, f);
+  for (const name of names) {
+    if (name.endsWith('.override.md')) continue; // 残留覆盖文件，忽略
+    const full = path.join(subDir, name);
+    const stat = await fs.stat(full).catch(() => null);
+    if (!stat) continue;
+
+    // 目录资产（skill <id>/SKILL.md）：读 SKILL.md，hash 聚合整个目录
+    if (stat.isDirectory()) {
+      const skillFile = path.join(full, 'SKILL.md');
+      const skillRaw = await fs.readFile(skillFile, 'utf8').catch(() => null);
+      if (skillRaw === null) continue; // 目录但无 SKILL.md，跳过
+      const parsed = matter(skillRaw);
+      const data = parsed.data as Record<string, unknown>;
+      if (data.id === undefined && data.type === undefined) continue;
+      let meta: AssetMeta;
+      try {
+        meta = validateAssetMeta(data);
+      } catch (e) {
+        errors.push(`${path.relative(baseDir, skillFile)}: ${(e as Error).message}`);
+        continue;
+      }
+      const hash = await hashDir(full);
+      const rel = path.relative(baseDir, skillFile);
+      const entry: ManifestAssetEntry = {
+        id: meta.id,
+        type: meta.type,
+        path: rel,
+        versions: [{ path: rel }],
+      };
+      assets.push({ entry, meta, raw: skillRaw, content: parsed.content, hash, dirPath: full });
+      continue;
+    }
+
+    // 单文件资产（rule/prompt）
+    if (!name.endsWith('.md')) continue;
     const raw = await fs.readFile(full, 'utf8');
     const parsed = matter(raw);
     const data = parsed.data as Record<string, unknown>;

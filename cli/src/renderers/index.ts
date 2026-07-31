@@ -78,6 +78,28 @@ function makeRenderer(cfg: AgentConfig): AgentRenderer {
           }
           for (const asset of typeAssets) {
             const targetRel = substitute(mapping.targetPath, asset.meta.id);
+
+            // 目录资产（skill <id>/SKILL.md + scripts/）：sourcePath 为目录，
+            // cp 整个目录到 buildDir，SKILL.md 用 transform 转换 frontmatter，其余原样
+            if (asset.dirPath) {
+              const dirTarget = path.dirname(targetRel); // .claude/skills/<id>
+              const sourcePath = path.join(ctx.buildDir, dirTarget);
+              await fs.rm(sourcePath, { recursive: true, force: true });
+              await fs.cp(asset.dirPath, sourcePath, { recursive: true });
+              const skillFile = path.join(sourcePath, 'SKILL.md');
+              await fs.writeFile(skillFile, transform(asset), 'utf8');
+              placements.push({
+                assetIds: [asset.meta.id],
+                agent: cfg.name,
+                targetPath: path.join(ctx.projectRoot, dirTarget),
+                sourcePath,
+                action: mapping.action,
+                kind: 'dir',
+              });
+              continue;
+            }
+
+            // 单文件资产（rule）
             const sourcePath = path.join(ctx.buildDir, targetRel);
             await fs.mkdir(path.dirname(sourcePath), { recursive: true });
             await fs.writeFile(sourcePath, transform(asset), 'utf8');

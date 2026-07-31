@@ -6,6 +6,7 @@ import type { LoadedAsset, Manifest, ManifestVersion } from './types.js';
 import { assertWithinBase, validateAssetMeta, validateManifest } from './schema.js';
 import { UsageError } from './errors.js';
 import { normalizeVersion, maxVersionIndex } from './semver.js';
+import { hashDir } from './hash.js';
 
 /** 读取并校验药典 manifest */
 export async function loadManifest(marketPath: string): Promise<Manifest> {
@@ -53,7 +54,12 @@ export async function findAssetById(
       `manifest 与 frontmatter version 不一致: ${entry.id} manifest=${v.version} frontmatter=${meta.version}`,
     );
   }
-  const hash = createHash('sha256').update(raw).digest('hex');
+  // 目录资产（skill <id>/SKILL.md）：hash 聚合整个目录；单文件资产（rule）：hash 文件内容
+  const isDir = path.basename(v.path) === 'SKILL.md';
+  const dirPath = isDir ? path.dirname(full) : undefined;
+  const hash = isDir
+    ? await hashDir(dirPath!)
+    : createHash('sha256').update(raw).digest('hex');
   // entry.path 设为实际加载版本的 path，便于调用方展示
-  return { entry: { ...entry, path: v.path }, meta, raw, content: parsed.content, hash };
+  return { entry: { ...entry, path: v.path }, meta, raw, content: parsed.content, hash, dirPath };
 }
