@@ -10,7 +10,7 @@ renderer 不再硬编码这些，全部从配置读取。**新增 agent 或调�
 
 ## 内置 agent
 
-`cli/market/agents.json` 内置 8 个 agent：
+`cli/agents.json` 内置 8 个 agent：
 
 | agent | 规则目标 | MCP 目标 | 说明 |
 |---|---|---|---|
@@ -29,7 +29,7 @@ renderer 不再硬编码这些，全部从配置读取。**新增 agent 或调�
 
 | 层 | 路径 | 说明 |
 |---|---|---|
-| 内置默认 | `cli/market/agents.json` | 随包发布，开箱即用 |
+| 内置默认 | `cli/agents.json` | 随包发布，开箱即用 |
 | 项目覆盖 | `.agents/agents.json` | 按字段深合并覆盖内置；可新增 agent |
 
 合并规则：项目配置**深合并**到内置——对象递归覆盖，数组/原始值整体替换。可只覆盖单个字段（如只改某 agent 某 type 的 `targetPath`），其余从内置继承。

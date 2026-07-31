@@ -44,7 +44,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    M[("market 药典<br/>cli/market")]
+    M[("market 药典<br/>market")]
     A[".agents/&lt;type&gt;/ + mcp.json<br/>canonical 源（可直接编辑做项目定制）"]
     B[".build/&lt;agent&gt;/<br/>构建产物 (gitignored)"]
     T["agent 配置<br/>.claude/rules / .cursor / .mcp.json ..."]
@@ -60,7 +60,7 @@ flowchart LR
 
 ## 3. sync 引擎实现流程（实现 · 核心）
 
-对应 [sync.ts](https://github.com/ziangtin/zt-ai-doctor/blob/main/cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。renderer 由 `cli/market/agents.json` 配置驱动（`loadRenderers`），项目可 `.agents/agents.json` 覆盖。
+对应 [sync.ts](https://github.com/ziangtin/zt-ai-doctor/blob/main/cli/src/commands/sync.ts) 的 `runSync`：读资产 -> 分层合并 -> 选 renderer -> 兼容/信任过滤 -> 渲染 -> 放置 -> GC -> 写 manifest 与报告。renderer 由 `cli/agents.json` 配置驱动（`loadRenderers`），项目可 `.agents/agents.json` 覆盖。
 
 ```mermaid
 flowchart TD

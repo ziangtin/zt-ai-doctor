@@ -1,0 +1,12 @@
+{
+  "name": "zt-ai-doctor-market",
+  "version": "0.1.3",
+  "description": "zai-doctor 药典：canonical agent-agnostic 资产（rules/skills/mcp），随 zai-doctor 包发布",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ziangtin/zt-ai-doctor.git",
+    "directory": "market"
+  }
+}

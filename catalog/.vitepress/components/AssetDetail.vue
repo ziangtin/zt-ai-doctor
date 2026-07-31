@@ -11,9 +11,9 @@ const props = defineProps({
 });
 
 const asset = computed(() => data.assets.find((a) => a.id === props.id));
-// 资产详情页内容来自 cli/market/<marketPath>，编辑入口应指向源文件
+// 资产详情页内容来自 market/<marketPath>，编辑入口应指向源文件
 const sourceUrl = computed(
-  () => `${REPO}/edit/main/cli/market/${asset.value?.marketPath ?? ''}`,
+  () => `${REPO}/edit/main/market/${asset.value?.marketPath ?? ''}`,
 );
 </script>
 

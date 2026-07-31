@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'cli/market/**'
+      - 'market/**'
       - 'catalog/**'
       - '.github/workflows/deploy-catalog.yml'
   workflow_dispatch:

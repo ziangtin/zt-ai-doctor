@@ -70,15 +70,16 @@ pnpm --filter zai-doctor dev -- treat         # 下药（按处方单抓药 + sy
 ## Agent 支持
 
 - **已实现**：Claude Code、Cursor、Copilot、Codex、Cline、Windsurf、Trae、Lingma（通义灵码 / Qoder CN）
-- **配置驱动**：agent 的映射/探测全部由 `cli/market/agents.json` 声明，项目可在 `.agents/agents.json` 覆盖或新增 agent（无需改 TS）。见 [catalog/guide/agents-config.md](catalog/guide/agents-config.md)
+- **配置驱动**：agent 的映射/探测全部由 `cli/agents.json` 声明，项目可在 `.agents/agents.json` 覆盖或新增 agent（无需改 TS）。见 [catalog/guide/agents-config.md](catalog/guide/agents-config.md)
 - 类型覆盖矩阵见 [catalog/guide/coverage-matrix.md](catalog/guide/coverage-matrix.md)
 
 ## 仓库结构
 
 ```
 zt-ai-doctor/
-├── cli/        # zai-doctor CLI（Node + TS）+ market/（canonical 资产，随包发布）
-├── catalog/    # 文档站（VitePress，基于 Vue）：扫 cli/market 生成药典 + guide/changelog 使用文档
+├── cli/        # zai-doctor CLI（Node + TS）
+├── market/     # canonical 药典资产（rules/skills/mcp，随 zai-doctor 包发布）
+├── catalog/    # 文档站（VitePress，基于 Vue）：扫 market 生成药典 + guide/changelog 使用文档
 └── docs/       # design（设计演进）
 ```
 

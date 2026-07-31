@@ -71,7 +71,7 @@ zai-doctor --help      # 命令列表
 │   ├── diagnose-report.md  # 诊断报告
 │   └── detect-report.md    # 环境探测报告
 ├── mcp.json         # MCP 单文件源（{mcpServers:{id:body}}），treat 写入、trust 过滤、sync 渲染
-├── agents.json      # agent 映射/探测覆盖（可选，覆盖内置 cli/market/agents.json）
+├── agents.json      # agent 映射/探测覆盖（可选，覆盖内置 cli/agents.json）
 ├── zai-doctor.lock.json  # 锁文件（提交：market 版本 + 已装资产 + hash + 装时 version）
 └── .gitignore
 ```
@@ -109,15 +109,15 @@ agents: [claude, cursor, copilot]
 ### 分层覆盖
 | 层 | 位置 | 进工具 market？ | 说明 |
 |---|---|---|---|
-| baseline | `cli/market/` | 是 | 默认资产 |
-| personal | `cli/market/`（`layer: personal`） | 是 | 个人 curation |
+| baseline | `market/` | 是 | 默认资产 |
+| personal | `market/`（`layer: personal`） | 是 | 个人 curation |
 
 合并规则：**同 id，高优先级层整体替换低优先级层**（`personal > baseline`）；同层同 id 按 `priority` 取大。
 
-> **项目级定制**：`.agents/` 本身就是项目级，直接编辑 `.agents/<type>/<id>.md` 即可，无需额外覆盖层。`treat` 有冲突保护--若你改过的资产（hash 与 lockfile 记录不一致）被 re-treat，会跳过覆盖并提示，`--force` 强制覆盖。**工具 market 的发布只在工具包 `cli/market/` 进行**，项目里的定制不会发布到工具 market。
+> **项目级定制**：`.agents/` 本身就是项目级，直接编辑 `.agents/<type>/<id>.md` 即可，无需额外覆盖层。`treat` 有冲突保护--若你改过的资产（hash 与 lockfile 记录不一致）被 re-treat，会跳过覆盖并提示，`--force` 强制覆盖。**工具 market 的发布只在工具包 `market/` 进行**，项目里的定制不会发布到工具 market。
 
 ### renderer 与 agent 配置目标
-sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）。目标路径 / 聚合 / action 全部由 `cli/market/agents.json` 配置驱动（项目可在 `.agents/agents.json` 覆盖或新增 agent，见 [agents.json 配置](./agents-config)）：
+sync 把 canonical 资产渲染成各 agent 原生配置（软链优先，降级 copy）。目标路径 / 聚合 / action 全部由 `cli/agents.json` 配置驱动（项目可在 `.agents/agents.json` 覆盖或新增 agent，见 [agents.json 配置](./agents-config)）：
 - Claude：`.claude/rules/<id>.md` + `.claude/skills/<id>/SKILL.md` + `.mcp.json`
 - Cursor：`.cursor/rules/<id>.mdc` + `.cursor/mcp.json`
 - Copilot：`.github/copilot-instructions.md` + `.vscode/mcp.json`
@@ -228,7 +228,7 @@ zai-doctor purge claude   # 删 claude 的全部 sync 产物（.claude/rules/、
 | `trust <id>` | 信任 MCP | - |
 
 **通用选项**：
-- `--market <path>`：药典路径（默认包内 `cli/market`，或 `$ZAI_MARKET_PATH`）
+- `--market <path>`：药典路径（默认包内 `market`，或 `$ZAI_MARKET_PATH`）
 - `--project <path>`：项目根（默认 cwd）
 
 **退出码**：`0` 成功 ｜ `1` 运行/同步失败 ｜ `2` 参数/schema/配置错误
@@ -238,8 +238,8 @@ zai-doctor purge claude   # 删 claude 的全部 sync 产物（.claude/rules/、
 ## 5. 资产管理
 
 ### 添加资产到药典
-1. 在 `cli/market/<type>/` 建 `.md`（frontmatter + 正文，frontmatter 带 `version`）
-2. 在 `cli/market/manifest.json` 加索引：`{ "id": "...", "type": "...", "versions": [{ "version": "1.0.0", "path": "<type>/<file>.md" }] }`
+1. 在 `market/<type>/` 建 `.md`（frontmatter + 正文，frontmatter 带 `version`）
+2. 在 `market/manifest.json` 加索引：`{ "id": "...", "type": "...", "versions": [{ "version": "1.0.0", "path": "<type>/<file>.md" }] }`
 3. 验证：`zai-doctor list`
 
 > 多版本结构（同 id 多版本 + 回退）见 [药典多版本](./market)。manifest 也兼容旧单 path 格式（`{ "id", "type", "path" }`）。
@@ -291,7 +291,7 @@ zai-doctor update --source <git-url> --ref <branch>
 pnpm --filter catalog dev      # 本地预览
 pnpm --filter catalog build    # 生成 catalog/dist
 ```
-push main（`cli/market` 或 `catalog` 改动）自动重新部署。
+push main（`market` 或 `catalog` 改动）自动重新部署。
 
 ---
 
@@ -342,7 +342,7 @@ zai-doctor sync --copy         # 强制 copy，受管可重同步
 ## 8. 配置
 
 - **`ZAI_MARKET_PATH`**：环境变量，指定药典路径（覆盖默认包内 market）
-- **`cli/market/agents.json`**：内置 agent 映射/探测配置（随包发布）
+- **`cli/agents.json`**：内置 agent 映射/探测配置（随包发布）
 - **`.agents/agents.json`**：项目级覆盖（深合并覆盖内置；可新增 agent，见 [agents.json 配置](./agents-config)）
 - **`.agents/zai-doctor.lock.json`**：锁文件，提交到 git（记录 market 版本 + 已装资产 + 完整 SHA-256 + 装时 version）
 - **`.agents/.build/`**：生成物，gitignored

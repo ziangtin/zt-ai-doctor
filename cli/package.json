@@ -16,7 +16,7 @@
   },
   "homepage": "https://github.com/ziangtin/zt-ai-doctor#readme",
   "keywords": ["claude-code", "cursor", "copilot", "codex", "cline", "windsurf", "coding-agent", "mcp", "rules"],
-  "files": ["dist", "market"],
+  "files": ["dist", "agents.json"],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
@@ -28,7 +28,8 @@
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",
     "gray-matter": "^4.0.3",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zt-ai-doctor-market": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

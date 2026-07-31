@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const marketDir = path.resolve(__dirname, '..', '..', 'cli', 'market');
+const requireFromHere = createRequire(import.meta.url);
+const marketDir = path.dirname(requireFromHere.resolve('zt-ai-doctor-market/package.json'));
 const outFile = path.resolve(__dirname, '..', 'src', 'data', 'catalog.json');
 
 const manifest = JSON.parse(
